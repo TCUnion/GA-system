@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { useConnection } from '../contexts/ConnectionContext';
 import './Layout.css';
 
 /**
  * Layout 元件
  * 包含側邊欄導覽和主內容區域
+ * 動態顯示 Supabase 連線狀態與最後更新時間
  */
 
 interface NavItem {
@@ -22,8 +24,29 @@ const navItems: NavItem[] = [
   { path: '/tech', icon: '📱', label: '技術分析' },
 ];
 
+/**
+ * 格式化最後更新時間為台北時間
+ */
+function formatLastUpdated(isoString: string | null): string {
+  if (!isoString) return '未知';
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleString('zh-TW', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '未知';
+  }
+}
+
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { status, lastUpdatedAt, refresh } = useConnection();
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}/${(today.getMonth() + 1)
@@ -36,6 +59,15 @@ function Layout() {
   const startDateStr = `${thirtyDaysAgo.getFullYear()}/${(thirtyDaysAgo.getMonth() + 1)
     .toString()
     .padStart(2, '0')}/${thirtyDaysAgo.getDate().toString().padStart(2, '0')}`;
+
+  // 連線狀態文字與樣式映射
+  const statusConfig = {
+    connected: { label: 'Supabase 已連線', className: 'status-connected' },
+    disconnected: { label: '模擬資料模式', className: 'status-disconnected' },
+    checking: { label: '連線檢查中...', className: 'status-checking' },
+  };
+
+  const currentStatus = statusConfig[status];
 
   return (
     <div className="layout">
@@ -70,10 +102,15 @@ function Layout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="sidebar-status">
+          <div className={`sidebar-status ${currentStatus.className}`}>
             <span className="status-dot" />
-            <span>模擬資料模式</span>
+            <span>{currentStatus.label}</span>
           </div>
+          {status === 'connected' && lastUpdatedAt && (
+            <div className="sidebar-update-time">
+              🕐 更新：{formatLastUpdated(lastUpdatedAt)}
+            </div>
+          )}
         </div>
       </aside>
 
@@ -94,7 +131,13 @@ function Layout() {
             <div className="date-display">
               📅 {startDateStr} — {dateStr}
             </div>
-            <button className="refresh-btn">🔄 重新整理</button>
+            <button
+              className="refresh-btn"
+              onClick={refresh}
+              title="清除快取並重新載入資料"
+            >
+              🔄 重新整理
+            </button>
           </div>
         </div>
         <div className="page-content">

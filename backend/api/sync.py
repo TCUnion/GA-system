@@ -1,66 +1,53 @@
 from fastapi import APIRouter, HTTPException
 import logging
-from services.ga_service import ga_service
-from services.supabase_service import supabase_service
+from services.sync_runner import run_sync
 from schemas.sync_schema import SyncResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 @router.post("/sync", response_model=SyncResponse)
 def sync_ga_data():
     """
-    觸發 GA4 報表爬蟲並建立/更新到 Supabase 快取
-    
-    NOTE: 由於 GA4 API 為阻塞呼叫，此路由不使用 async 讓 FastAPI 自動指派到 ThreadPool 執行，避免卡住 Event Loop。
+    手動觸發 GA4 報表同步並寫入 Supabase 快取。
+
+    NOTE: 此端點與排程器使用同一套 sync_runner 邏輯，
+    也可從 n8n Webhook 或 curl 手動呼叫。
+    由於 GA4 API 為阻塞呼叫，此路由不使用 async 讓 FastAPI
+    自動指派到 ThreadPool 執行，避免卡住 Event Loop。
     """
-    updated_reports = []
     try:
-        logger.info("同步: Overview")
-        overview_data = ga_service.get_overview_report()
-        supabase_service.upsert_cache("overview", overview_data)
-        updated_reports.append("overview")
-
-        # NOTE: 將當日 KPI 寫入每日快照表，供前端趨勢圖使用
-        logger.info("同步: 每日快照")
-        supabase_service.upsert_daily_snapshot(overview_data["kpi"])
-        updated_reports.append("daily_snapshot")
-        
-        # Audience
-        logger.info("同步: Audience")
-        audience_data = ga_service.fetch_audience_report()
-        supabase_service.upsert_cache("audience", audience_data)
-        updated_reports.append("audience")
-
-        # Acquisition
-        logger.info("同步: Acquisition")
-        acquisition_data = ga_service.fetch_acquisition_report()
-        supabase_service.upsert_cache("acquisition", acquisition_data)
-        updated_reports.append("acquisition")
-
-        # Content
-        logger.info("同步: Content")
-        content_data = ga_service.fetch_content_report()
-        supabase_service.upsert_cache("content", content_data)
-        updated_reports.append("content")
-
-        # Engagement
-        logger.info("同步: Engagement")
-        engagement_data = ga_service.fetch_engagement_report()
-        supabase_service.upsert_cache("engagement", engagement_data)
-        updated_reports.append("engagement")
-
-        # Tech
-        logger.info("同步: Tech")
-        tech_data = ga_service.fetch_tech_report()
-        supabase_service.upsert_cache("tech", tech_data)
-        updated_reports.append("tech")
-
+        result = run_sync()
         return SyncResponse(
-            status="success",
-            message="資料同步成功",
-            updated_reports=updated_reports
+            status=result["status"],
+            message=result["message"],
+            updated_reports=result["updated_reports"],
         )
     except Exception as e:
-        logger.error(f"同步資料失敗: {e}")
+        logger.error(f"手動同步資料失敗: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sync/status")
+def get_sync_status():
+    """
+    查詢排程器狀態與下次執行時間。
+
+    Returns:
+        排程器運行狀態、排程任務清單與下次觸發時間
+    """
+    from core.scheduler import scheduler
+
+    jobs = []
+    for job in scheduler.get_jobs():
+        jobs.append({
+            "id": job.id,
+            "name": job.name,
+            "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
+        })
+
+    return {
+        "scheduler_running": scheduler.running,
+        "jobs": jobs,
+    }

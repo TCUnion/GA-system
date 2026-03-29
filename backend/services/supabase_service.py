@@ -58,4 +58,25 @@ class SupabaseService:
             logger.error(f"Supabase 每日快照寫入失敗: {e}")
             raise e
 
+    def get_cache(self, report_type: str) -> dict | None:
+        """
+        從 ga4_cache 表讀取指定報表的快取資料。
+
+        Args:
+            report_type: 報表類型（overview, audience, ...）
+
+        Returns:
+            報表 JSON 資料，若不存在則回傳 None
+        """
+        try:
+            response = self.client.table("ga4_cache").select("data").eq(
+                "report_type", report_type
+            ).execute()
+            if response.data:
+                return response.data[0]["data"]
+            return None
+        except Exception as e:
+            logger.error(f"Supabase 讀取快取失敗 ({report_type}): {e}")
+            return None
+
 supabase_service = SupabaseService()

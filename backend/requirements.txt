@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+google-analytics-data
+supabase
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-dotenv

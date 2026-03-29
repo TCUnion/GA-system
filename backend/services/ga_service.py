@@ -1,5 +1,8 @@
 import os
+import base64
+import json
 import logging
+import tempfile
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     DateRange,
@@ -8,6 +11,7 @@ from google.analytics.data_v1beta.types import (
     RunReportRequest,
     OrderBy,
 )
+from google.oauth2 import service_account
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -23,25 +27,49 @@ class GAService:
 
     負責透過 Google Analytics Data API v1beta 拉取各類報表資料，
     回傳的 dict 格式需與前端 ga4Service.ts 中的型別定義完全對齊。
+
+    NOTE: 支援兩種憑證載入方式：
+    1. GOOGLE_CREDENTIALS_BASE64 — 雲端部署，Base64 編碼的 JSON 字串
+    2. GOOGLE_APPLICATION_CREDENTIALS — 本地開發，JSON 檔案路徑
     """
 
     def __init__(self):
         """
-        初始化 GA4 Client，憑證從 GOOGLE_APPLICATION_CREDENTIALS 環境變數載入。
+        初始化 GA4 Client，依優先順序載入憑證：
+        1. 若 GOOGLE_CREDENTIALS_BASE64 存在 → 從記憶體載入
+        2. 否則使用 GOOGLE_APPLICATION_CREDENTIALS 指向的 JSON 檔案
         """
         self.property_id = settings.GA_PROPERTY_ID
 
-        # NOTE: 確保 Google SDK 能從環境變數讀到我們指定的憑證路徑，
-        # 因為 Pydantic Settings 預設不會把值插回 os.environ 中
-        credentials_path = settings.GOOGLE_APPLICATION_CREDENTIALS
-        if not os.path.isabs(credentials_path):
-            base_dir = os.path.dirname(os.path.dirname(__file__))
-            credentials_path = os.path.join(base_dir, credentials_path)
-
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
-
         try:
-            self.client = BetaAnalyticsDataClient()
+            if settings.GOOGLE_CREDENTIALS_BASE64:
+                # NOTE: 雲端部署模式 — 從環境變數解碼 Base64 JSON
+                logger.info("🔑 使用 Base64 環境變數載入 GCP 憑證...")
+                creds_json = base64.b64decode(
+                    settings.GOOGLE_CREDENTIALS_BASE64
+                ).decode("utf-8")
+                creds_dict = json.loads(creds_json)
+                credentials = service_account.Credentials.from_service_account_info(
+                    creds_dict,
+                    scopes=["https://www.googleapis.com/auth/analytics.readonly"],
+                )
+                self.client = BetaAnalyticsDataClient(credentials=credentials)
+            else:
+                # NOTE: 本地開發模式 — 使用 JSON 檔案路徑
+                logger.info("🔑 使用 JSON 檔案載入 GCP 憑證...")
+                credentials_path = settings.GOOGLE_APPLICATION_CREDENTIALS
+                if not credentials_path:
+                    raise ValueError(
+                        "必須設定 GOOGLE_CREDENTIALS_BASE64 或 "
+                        "GOOGLE_APPLICATION_CREDENTIALS 其中之一"
+                    )
+                if not os.path.isabs(credentials_path):
+                    base_dir = os.path.dirname(os.path.dirname(__file__))
+                    credentials_path = os.path.join(base_dir, credentials_path)
+
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+                self.client = BetaAnalyticsDataClient()
+
             logger.info("✅ GA4 Client 初始化成功。")
         except Exception as e:
             logger.error(f"GA4 Client 初始化失敗: {e}")

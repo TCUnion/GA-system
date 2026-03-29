@@ -20,6 +20,11 @@ def sync_ga_data():
         overview_data = ga_service.get_overview_report()
         supabase_service.upsert_cache("overview", overview_data)
         updated_reports.append("overview")
+
+        # NOTE: 將當日 KPI 寫入每日快照表，供前端趨勢圖使用
+        logger.info("同步: 每日快照")
+        supabase_service.upsert_daily_snapshot(overview_data["kpi"])
+        updated_reports.append("daily_snapshot")
         
         # Audience
         logger.info("同步: Audience")

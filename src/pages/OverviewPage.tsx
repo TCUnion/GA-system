@@ -4,11 +4,20 @@ import {
 } from 'recharts';
 import ScoreCard from '../components/ScoreCard';
 import ChartCard from '../components/ChartCard';
-import { kpiData, dailyTrafficData, channelData, deviceData } from '../data/mockData';
+import { useGA4Data } from '../hooks/useGA4Data';
+import {
+  getOverviewKpi, getDailyTraffic, getChannelData, getDeviceData,
+} from '../services/ga4Service';
+import {
+  kpiData as fallbackKpi,
+  dailyTrafficData as fallbackTraffic,
+  channelData as fallbackChannel,
+  deviceData as fallbackDevice,
+} from '../data/mockData';
 
 /**
  * 總覽頁面
- * 顯示所有 KPI 摘要、流量趨勢、管道分佈和裝置分佈
+ * 從 Supabase 讀取 GA4 快取資料，失敗時 fallback 到模擬數據
  */
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
@@ -20,7 +29,6 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-// NOTE: 使用 any 來避免 Recharts 嚴格的 PieLabelRenderProps 類型問題
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderCustomLabel = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
@@ -28,31 +36,18 @@ const renderCustomLabel = (props: any) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
   if (percent < 0.05) return null;
-
   return (
-    <text
-      x={x}
-      y={y}
-      fill="hsl(215, 20%, 65%)"
-      textAnchor={x > cx ? 'start' : 'end'}
-      fontSize={11}
-      dominantBaseline="central"
-    >
+    <text x={x} y={y} fill="hsl(215, 20%, 65%)" textAnchor={x > cx ? 'start' : 'end'} fontSize={11} dominantBaseline="central">
       {name} ({(percent * 100).toFixed(0)}%)
     </text>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const formatTooltipValue = (value: any) => {
-  return typeof value === 'number' ? value.toLocaleString('zh-TW') : String(value);
-};
+const formatTooltipValue = (value: any) =>
+  typeof value === 'number' ? value.toLocaleString('zh-TW') : String(value);
 
-/**
- * 自訂 Tooltip 元件
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload) return null;
@@ -65,9 +60,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           <span className="custom-tooltip-dot" style={{ background: entry.color }} />
           <span>{entry.name}</span>
           <span className="custom-tooltip-value">
-            {typeof entry.value === 'number'
-              ? entry.value.toLocaleString('zh-TW')
-              : entry.value}
+            {typeof entry.value === 'number' ? entry.value.toLocaleString('zh-TW') : entry.value}
           </span>
         </div>
       ))}
@@ -76,6 +69,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 function OverviewPage() {
+  const { data: kpi, loading: kpiLoading } = useGA4Data(getOverviewKpi, fallbackKpi);
+  const { data: traffic } = useGA4Data(getDailyTraffic, fallbackTraffic);
+  const { data: channels } = useGA4Data(getChannelData, fallbackChannel);
+  const { data: devices } = useGA4Data(getDeviceData, fallbackDevice);
+
   return (
     <div className="page-grid">
       <div className="page-header">
@@ -85,76 +83,41 @@ function OverviewPage() {
 
       {/* KPI 計分卡列 */}
       <div className="grid-6">
-        {kpiData.map((kpi) => (
-          <ScoreCard key={kpi.label} {...kpi} />
-        ))}
+        {kpiLoading ? (
+          <div className="glass-card" style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: 'hsl(215, 20%, 55%)' }}>
+            載入中...
+          </div>
+        ) : (
+          kpi.map((k) => <ScoreCard key={k.label} {...k} />)
+        )}
       </div>
 
       {/* 流量趨勢折線圖 */}
       <ChartCard title="流量趨勢" subtitle="過去 30 天使用者與瀏覽量變化">
         <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={dailyTrafficData}>
+          <LineChart data={traffic}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }}
-              axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
-              tickLine={false}
-              interval={2}
-            />
-            <YAxis
-              tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              width={50}
-            />
+            <XAxis dataKey="label" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} tickLine={false} interval={2} />
+            <YAxis tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} width={50} />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
-            <Line
-              type="monotone"
-              dataKey="users"
-              name="使用者"
-              stroke={CHART_COLORS[0]}
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={{ r: 5, strokeWidth: 2, fill: CHART_COLORS[0] }}
-            />
-            <Line
-              type="monotone"
-              dataKey="views"
-              name="瀏覽量"
-              stroke={CHART_COLORS[1]}
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={{ r: 5, strokeWidth: 2, fill: CHART_COLORS[1] }}
-            />
+            <Line type="monotone" dataKey="users" name="使用者" stroke={CHART_COLORS[0]} strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 2, fill: CHART_COLORS[0] }} />
+            <Line type="monotone" dataKey="views" name="瀏覽量" stroke={CHART_COLORS[1]} strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 2, fill: CHART_COLORS[1] }} />
           </LineChart>
         </ResponsiveContainer>
       </ChartCard>
 
-      {/* 管道 + 裝置 分析 */}
+      {/* 管道 + 裝置 */}
       <div className="grid-2">
         <ChartCard title="流量管道來源" subtitle="依管道分類的工作階段佔比">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={channelData}
-                dataKey="sessions"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                labelLine={false}
-                label={renderCustomLabel}
-              >
-                {channelData.map((_, index) => (
+              <Pie data={channels} dataKey="sessions" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={renderCustomLabel}>
+                {channels.map((_, index) => (
                   <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                formatter={formatTooltipValue}
-                contentStyle={tooltipStyle}
-              />
+              <Tooltip formatter={formatTooltipValue} contentStyle={tooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -162,26 +125,12 @@ function OverviewPage() {
         <ChartCard title="裝置類型分佈" subtitle="使用者的裝置類別佔比">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={deviceData}
-                dataKey="users"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={65}
-                outerRadius={100}
-                paddingAngle={3}
-                label={renderCustomLabel}
-                labelLine={false}
-              >
-                {deviceData.map((_, index) => (
+              <Pie data={devices} dataKey="users" nameKey="name" cx="50%" cy="50%" innerRadius={65} outerRadius={100} paddingAngle={3} label={renderCustomLabel} labelLine={false}>
+                {devices.map((_, index) => (
                   <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                formatter={formatTooltipValue}
-                contentStyle={tooltipStyle}
-              />
+              <Tooltip formatter={formatTooltipValue} contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>

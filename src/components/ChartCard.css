@@ -1,0 +1,89 @@
+/* ========================================
+ * ChartCard — 圖表容器
+ * ======================================== */
+
+.chart-card {
+  padding: var(--space-lg);
+  animation: fadeInUp 0.5s ease both;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.chart-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.chart-card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.chart-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.chart-card-body {
+  width: 100%;
+  min-height: 200px;
+}
+
+/* --- 圖表內部 Recharts 調整 --- */
+.chart-card .recharts-cartesian-axis-tick-value {
+  font-size: 11px;
+  fill: var(--text-tertiary);
+}
+
+.chart-card .recharts-legend-item-text {
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+}
+
+.chart-card .recharts-tooltip-wrapper {
+  outline: none;
+}
+
+/* --- 自訂 Tooltip --- */
+.custom-tooltip {
+  background: hsl(222, 44%, 12%);
+  border: 1px solid var(--border-color-hover);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.custom-tooltip-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.custom-tooltip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  padding: 2px 0;
+}
+
+.custom-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.custom-tooltip-value {
+  font-weight: 600;
+  margin-left: auto;
+  padding-left: var(--space-md);
+}

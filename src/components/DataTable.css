@@ -1,0 +1,119 @@
+/* ========================================
+ * DataTable — 資料表格
+ * ======================================== */
+
+.data-table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.825rem;
+}
+
+.data-table thead th {
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+}
+
+.data-table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.data-table tbody td {
+  padding: 10px var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.data-table tbody td:first-child {
+  font-weight: 500;
+}
+
+/* 數值欄位靠右 */
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 條件格式 — 高參與率 */
+.rate-high {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.rate-medium {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.rate-low {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* 排名數字 */
+.rank-cell {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.rank-cell.top-3 {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+/* 進度條 */
+.bar-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-accent);
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bar-value {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 45px;
+  text-align: right;
+}

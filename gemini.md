@@ -45,7 +45,7 @@
 ### 🔵 前端 (Vite - `.env` 或 Zeabur Variables)
 *   `VITE_SUPABASE_URL`: 供 supabase-js 初始化使用。
 *   `VITE_SUPABASE_ANON_KEY`: 供 supabase-js 初始化使用，允許匿名讀取（須配合正確的 RLS）。
-*   `VITE_API_URL`: (未來預留) 若前端未來新增「手動同步」按鈕，需指向後端 Zeabur API 網域。
+*   `VITE_API_URL`: 已綁定為 `https://tcuga4api.zeabur.app`，若前端未來新增「手動同步」按鈕，可用此對接後端。
 
 ## 4. 待辦與未來規劃 (TODO / Next Steps)
 

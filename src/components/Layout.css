@@ -130,19 +130,34 @@
   height: 18px;
 }
 
-/* --- 側邊欄底部 --- */
-.sidebar-footer {
-  padding: var(--space-md) var(--space-lg);
-  border-top: 1px solid var(--border-color);
-  flex-shrink: 0;
+/* --- 側邊欄資料狀態卡片 --- */
+.sidebar-data-status {
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-status-header {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
 }
 
 .sidebar-status {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .status-dot {
@@ -177,18 +192,19 @@
 
 /* 最後更新時間 */
 .sidebar-update-time {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   color: var(--text-tertiary);
-  margin-top: 6px;
-  opacity: 0.7;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+  border-radius: 4px;
 }
 
 .sidebar-update-time svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
 }
 

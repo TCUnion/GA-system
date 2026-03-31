@@ -120,6 +120,25 @@ function Layout() {
               <span>Analytics Dashboard</span>
             </div>
           </div>
+
+          {/* 新增：將原本在 footer 的狀態移到此處形成資訊卡片 */}
+          <div className="sidebar-data-status">
+            <div className="data-status-header">資料連線狀態</div>
+            <div className={`sidebar-status ${currentStatus.className}`}>
+              <span className="status-dot" />
+              <span>{currentStatus.label}</span>
+            </div>
+            {status === 'connected' && lastUpdatedAt && (
+              <div className="sidebar-update-time">
+                {/* NOTE: 使用 SVG 時鐘圖示取代 🕐 emoji */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                {formatLastUpdated(lastUpdatedAt)}
+              </div>
+            )}
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -139,23 +158,6 @@ function Layout() {
             </NavLink>
           ))}
         </nav>
-
-        <div className="sidebar-footer">
-          <div className={`sidebar-status ${currentStatus.className}`}>
-            <span className="status-dot" />
-            <span>{currentStatus.label}</span>
-          </div>
-          {status === 'connected' && lastUpdatedAt && (
-            <div className="sidebar-update-time">
-              {/* NOTE: 使用 SVG 時鐘圖示取代 🕐 emoji */}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              更新：{formatLastUpdated(lastUpdatedAt)}
-            </div>
-          )}
-        </div>
       </aside>
 
       {/* 主內容區 */}

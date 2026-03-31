@@ -86,6 +86,7 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -94,11 +95,12 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   overflow-x: hidden;
-  min-height: 100vh;
+  /* NOTE: 使用 100dvh 修復手機瀏覽器 100vh 不計入位址列高度的問題 */
+  min-height: 100dvh;
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* --- 滾動條樣式 --- */
@@ -149,8 +151,8 @@ body {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 }
 
 @keyframes pulse {
@@ -161,6 +163,15 @@ body {
 @keyframes countUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 尊重使用者減少動畫偏好 --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* --- 玻璃擬態卡片 --- */
@@ -195,6 +206,13 @@ body {
   animation: fadeIn 0.5s ease;
 }
 
+/* --- KPI 計分卡格線 --- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -219,12 +237,30 @@ body {
   gap: var(--space-lg);
 }
 
-@media (max-width: 1200px) {
-  .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-6 { grid-template-columns: repeat(3, 1fr); }
+/* --- 響應式斷點 --- */
+
+/* 1440px — 超寬螢幕：kpi-grid 顯示 6 格 */
+@media (min-width: 1440px) {
+  .kpi-grid { grid-template-columns: repeat(6, 1fr); }
 }
 
+/* 1200px — 大螢幕 */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .grid-4   { grid-template-columns: repeat(2, 1fr); }
+  .grid-6   { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* 1024px — 中等螢幕（平板橫向）*/
+@media (max-width: 1024px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-3   { grid-template-columns: repeat(2, 1fr); }
+  .grid-6   { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 768px — 手機版 */
 @media (max-width: 768px) {
+  .kpi-grid,
   .grid-2,
   .grid-3,
   .grid-4,
@@ -243,6 +279,14 @@ body {
   font-weight: 700;
   letter-spacing: -0.02em;
   margin-bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.page-header h1 svg {
+  flex-shrink: 0;
+  color: var(--color-accent);
 }
 
 .page-header p {
@@ -269,4 +313,24 @@ body {
 .badge-danger {
   background: var(--color-danger-dim);
   color: var(--color-danger);
+}
+
+/* --- Loading Skeleton 佔位動畫 --- */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  /* NOTE: 避免高度塌縮為 0，skeleton 才有空間可見 */
+  min-height: 100px;
+}
+
+.score-card.loading-skeleton {
+  min-height: 120px;
 }

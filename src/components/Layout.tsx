@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useConnection } from '../contexts/ConnectionContext';
+import DateRangePicker from './DateRangePicker';
 import './Layout.css';
 
 /**
@@ -46,7 +47,7 @@ function formatLastUpdated(isoString: string | null): string {
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { status, lastUpdatedAt, refresh } = useConnection();
+  const { status, lastUpdatedAt, refresh, isSyncing } = useConnection();
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}/${(today.getMonth() + 1)
@@ -128,15 +129,17 @@ function Layout() {
             <span className="top-bar-title">GA4 數據儀表板</span>
           </div>
           <div className="top-bar-right">
-            <div className="date-display">
-              📅 {startDateStr} — {dateStr}
-            </div>
+            <DateRangePicker 
+              initialStartDate={startDateStr.replace(/\//g, '-')} 
+              initialEndDate={dateStr.replace(/\//g, '-')} 
+            />
             <button
-              className="refresh-btn"
-              onClick={refresh}
-              title="清除快取並重新載入資料"
+              className={`refresh-btn ${isSyncing ? 'syncing' : ''}`}
+              onClick={() => refresh(true)}
+              title="立即從 GA4 拉取最新資料並重新整理畫面"
+              disabled={isSyncing}
             >
-              🔄 重新整理
+              {isSyncing ? '⏳ 同步中...' : '🔄 強制同步'}
             </button>
           </div>
         </div>

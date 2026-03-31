@@ -14,23 +14,27 @@ interface ConnectionState {
   status: 'connected' | 'disconnected' | 'checking';
   /** 最後資料更新時間（來自 Supabase fetched_at） */
   lastUpdatedAt: string | null;
-  /** 觸發全局資料刷新 */
-  refresh: () => void;
+  /** 觸發全局資料刷新，若提供 forceSync=true 會先請求後端同步 */
+  refresh: (forceSync?: boolean) => Promise<void>;
   /** 刷新計數器，頁面監聽此值重新載入資料 */
   refreshKey: number;
+  /** 是否正在從 GA4 後端同步中 */
+  isSyncing: boolean;
 }
 
 const ConnectionContext = createContext<ConnectionState>({
   status: 'checking',
   lastUpdatedAt: null,
-  refresh: () => {},
+  refresh: async () => {},
   refreshKey: 0,
+  isSyncing: false,
 });
 
 export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ConnectionState['status']>('checking');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   /**
    * 檢查 Supabase 連線狀態
@@ -63,11 +67,28 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
 
   /**
    * 全局刷新：清除前端快取並觸發所有頁面重新載入
+   * @param forceSync 若為 true 會呼叫後端 API 實際到 GA4 拉取資料再重整
    */
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async (forceSync = false) => {
+    if (forceSync) {
+      setIsSyncing(true);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${apiUrl}/api/sync`, { method: 'POST' });
+        if (!res.ok) {
+          throw new Error(`同步失敗: ${res.status}`);
+        }
+      } catch (e) {
+        console.error('GA4 後端同步失敗:', e);
+        // FIXME: 這裡應該要有 UI 通知 (Toast) 或者拋出錯誤讓上層處理
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+
     clearCache();
     setRefreshKey((prev) => prev + 1);
-    checkConnection();
+    await checkConnection();
   }, [checkConnection]);
 
   useEffect(() => {
@@ -75,7 +96,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   }, [checkConnection]);
 
   return (
-    <ConnectionContext.Provider value={{ status, lastUpdatedAt, refresh, refreshKey }}>
+    <ConnectionContext.Provider value={{ status, lastUpdatedAt, refresh, refreshKey, isSyncing }}>
       {children}
     </ConnectionContext.Provider>
   );

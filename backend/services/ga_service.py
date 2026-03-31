@@ -3,6 +3,8 @@ import base64
 import json
 import logging
 import tempfile
+import re
+from datetime import datetime, timedelta
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     DateRange,
@@ -77,6 +79,40 @@ class GAService:
 
     # ----- 共用內部方法 -----
 
+    def _resolve_real_date(self, date_str: str) -> datetime.date:
+        """
+        將 GA4 字串 (如 '30daysAgo', 'today') 轉為實際的 datetime.date。
+        若是 'YYYY-MM-DD' 則直接解析。
+        """
+        today = datetime.now().date()
+        if date_str == "today":
+            return today
+        elif date_str == "yesterday":
+            return today - timedelta(days=1)
+        match = re.match(r'^(\d+)daysAgo$', date_str)
+        if match:
+            days = int(match.group(1))
+            return today - timedelta(days=days)
+        
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+
+    def _get_compare_date_range(self, start_date: str, end_date: str) -> DateRange:
+        """
+        根據給定的起訖日，計算出相同天數的上一期日期範圍。
+        """
+        start_dt = self._resolve_real_date(start_date)
+        end_dt = self._resolve_real_date(end_date)
+        delta_days = (end_dt - start_dt).days + 1
+        
+        prev_end_dt = start_dt - timedelta(days=1)
+        prev_start_dt = prev_end_dt - timedelta(days=delta_days - 1)
+        
+        return DateRange(
+            start_date=prev_start_dt.strftime("%Y-%m-%d"),
+            end_date=prev_end_dt.strftime("%Y-%m-%d")
+        )
+
+
     def _run_report(self, dimensions: list[str], metrics: list[str],
                     date_ranges: list[DateRange] | None = None,
                     order_bys: list[OrderBy] | None = None,
@@ -103,7 +139,7 @@ class GAService:
 
     # ----- 1. Overview 總覽報表 -----
 
-    def get_overview_report(self) -> dict:
+    def get_overview_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
         """
         取得 GA4 總覽報表資料 (前 30 天) 與前一週期的比較。
 
@@ -111,7 +147,10 @@ class GAService:
             格式對齊前端 KpiData[]：
             { kpi: {...}, previousKpi: {...} }
         """
-        logger.info("📊 取得 Overview 總覽報表...")
+        logger.info(f"📊 取得 Overview 總覽報表 ({start_date} ~ {end_date})...")
+
+        current_range = DateRange(start_date=start_date, end_date=end_date)
+        compare_range = self._get_compare_date_range(start_date, end_date)
 
         request = RunReportRequest(
             property=f"properties/{self.property_id}",
@@ -123,7 +162,7 @@ class GAService:
                 Metric(name="averageSessionDuration"),
                 Metric(name="bounceRate"),
             ],
-            date_ranges=[DEFAULT_DATE_RANGE, COMPARE_DATE_RANGE],
+            date_ranges=[current_range, compare_range],
         )
 
         try:
@@ -153,7 +192,7 @@ class GAService:
 
     # ----- 2. Audience 使用者分析報表 -----
 
-    def fetch_audience_report(self) -> dict:
+    def fetch_audience_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
         """
         取得使用者分析報表，包含裝置、語言、OS、城市分佈。
 
@@ -161,13 +200,15 @@ class GAService:
             格式對齊前端：
             { devices: DeviceData[], os: OsData[], languages: LanguageData[], cities: CityData[] }
         """
-        logger.info("👥 取得 Audience 使用者分析報表...")
+        logger.info(f"👥 取得 Audience 使用者分析報表 ({start_date} ~ {end_date})...")
+        date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
             # 裝置類別分佈
             device_response = self._run_report(
                 dimensions=["deviceCategory"],
                 metrics=["totalUsers"],
+                date_ranges=date_ranges,
             )
             devices = []
             # NOTE: GA4 回傳英文 device category，需轉換為前端顯示的中文
@@ -183,6 +224,7 @@ class GAService:
             os_response = self._run_report(
                 dimensions=["operatingSystem"],
                 metrics=["totalUsers"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
             )
@@ -195,6 +237,7 @@ class GAService:
             lang_response = self._run_report(
                 dimensions=["language"],
                 metrics=["totalUsers"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
             )
@@ -207,6 +250,7 @@ class GAService:
             city_response = self._run_report(
                 dimensions=["city"],
                 metrics=["totalUsers", "sessions", "engagementRate"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
             )
@@ -235,7 +279,7 @@ class GAService:
 
     # ----- 3. Acquisition 流量來源報表 -----
 
-    def fetch_acquisition_report(self) -> dict:
+    def fetch_acquisition_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
         """
         取得流量來源報表，包含管道、來源/媒介、社群平台。
 
@@ -243,13 +287,15 @@ class GAService:
             格式對齊前端：
             { channels: ChannelData[], sourceMedium: SourceMediumData[], social: SocialData[] }
         """
-        logger.info("🔗 取得 Acquisition 流量來源報表...")
+        logger.info(f"🔗 取得 Acquisition 流量來源報表 ({start_date} ~ {end_date})...")
+        date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
             # 管道分佈
             channel_response = self._run_report(
                 dimensions=["sessionDefaultChannelGrouping"],
                 metrics=["sessions"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
             )
             channels = [
@@ -261,6 +307,7 @@ class GAService:
             source_response = self._run_report(
                 dimensions=["sessionSource", "sessionMedium"],
                 metrics=["sessions", "totalUsers", "newUsers", "engagementRate", "averageSessionDuration"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
                 limit=20,
             )
@@ -312,7 +359,7 @@ class GAService:
 
     # ----- 4. Content 內容分析報表 -----
 
-    def fetch_content_report(self) -> dict:
+    def fetch_content_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
         """
         取得內容分析報表，包含頁面排行與到達頁面。
 
@@ -320,13 +367,15 @@ class GAService:
             格式對齊前端：
             { pages: PageData[], landingPages: PageData[] }
         """
-        logger.info("📄 取得 Content 內容分析報表...")
+        logger.info(f"📄 取得 Content 內容分析報表 ({start_date} ~ {end_date})...")
+        date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
             # 所有頁面排行
             page_response = self._run_report(
                 dimensions=["pageTitle", "pagePath"],
                 metrics=["screenPageViews", "totalUsers", "averageSessionDuration", "bounceRate"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="screenPageViews"), desc=True)],
                 limit=20,
             )
@@ -345,6 +394,7 @@ class GAService:
             landing_response = self._run_report(
                 dimensions=["landingPagePlusQueryString"],
                 metrics=["sessions", "totalUsers", "bounceRate"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
                 limit=10,
             )
@@ -370,7 +420,7 @@ class GAService:
 
     # ----- 5. Engagement 參與分析報表 -----
 
-    def fetch_engagement_report(self) -> dict:
+    def fetch_engagement_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
         """
         取得參與分析報表，包含事件明細、每週與每小時分佈。
 
@@ -378,13 +428,15 @@ class GAService:
             格式對齊前端：
             { events: EventData[], weekday: WeekdayData[], hourly: HourlyData[] }
         """
-        logger.info("⚡ 取得 Engagement 參與分析報表...")
+        logger.info(f"⚡ 取得 Engagement 參與分析報表 ({start_date} ~ {end_date})...")
+        date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
             # 事件排行
             event_response = self._run_report(
                 dimensions=["eventName"],
                 metrics=["eventCount", "totalUsers"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="eventCount"), desc=True)],
                 limit=20,
             )
@@ -401,6 +453,7 @@ class GAService:
             weekday_response = self._run_report(
                 dimensions=["dayOfWeek"],
                 metrics=["sessions"],
+                date_ranges=date_ranges,
             )
             # NOTE: GA4 的 dayOfWeek 回傳 "0"=週日 ~ "6"=週六，需轉換為中文
             weekday_map = {"0": "週日", "1": "週一", "2": "週二", "3": "週三",
@@ -419,6 +472,7 @@ class GAService:
             hourly_response = self._run_report(
                 dimensions=["hour"],
                 metrics=["sessions"],
+                date_ranges=date_ranges,
             )
             hourly_raw = {
                 row.dimension_values[0].value: int(row.metric_values[0].value)
@@ -440,7 +494,7 @@ class GAService:
 
     # ----- 6. Tech 技術分析報表 -----
 
-    def fetch_tech_report(self) -> dict:
+    def fetch_tech_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
         """
         取得技術分析報表，包含瀏覽器與螢幕解析度。
 
@@ -448,13 +502,15 @@ class GAService:
             格式對齊前端：
             { browsers: BrowserData[], screens: ScreenData[] }
         """
-        logger.info("📱 取得 Tech 技術分析報表...")
+        logger.info(f"📱 取得 Tech 技術分析報表 ({start_date} ~ {end_date})...")
+        date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
             # 瀏覽器分佈
             browser_response = self._run_report(
                 dimensions=["browser"],
                 metrics=["totalUsers", "sessions", "engagementRate"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
             )
@@ -472,6 +528,7 @@ class GAService:
             screen_response = self._run_report(
                 dimensions=["screenResolution"],
                 metrics=["totalUsers"],
+                date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
             )

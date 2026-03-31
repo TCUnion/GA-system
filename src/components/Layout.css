@@ -221,9 +221,17 @@
   transition: all var(--transition-fast);
 }
 
-.refresh-btn:hover {
+.refresh-btn:hover:not(:disabled) {
   background: var(--color-accent);
   color: white;
+}
+
+.refresh-btn.syncing {
+  opacity: 0.7;
+  cursor: wait;
+  background: var(--bg-input);
+  color: var(--text-tertiary);
+  border-color: var(--border-color);
 }
 
 .page-content {

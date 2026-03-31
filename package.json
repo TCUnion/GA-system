@@ -1,8 +1,11 @@
 {
   "name": "nanzhuang-dashboard",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

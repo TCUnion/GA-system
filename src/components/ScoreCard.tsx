@@ -21,8 +21,9 @@ interface ScoreCardProps {
 
 function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps) {
   // NOTE: 計算與前期的變化百分比
-  const changePercent = ((value - previousValue) / previousValue) * 100;
-  const isPositive = changePercent >= 0;
+  const hasPreviousData = previousValue > 0;
+  const changePercent = hasPreviousData ? ((value - previousValue) / previousValue) * 100 : 0;
+  const isPositive = hasPreviousData ? changePercent >= 0 : true;
 
   /**
    * 根據格式類型，將數值轉為顯示字串
@@ -30,12 +31,13 @@ function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps
   const formatValue = (val: number): string => {
     switch (format) {
       case 'number':
-        return val.toLocaleString('zh-TW');
+        return Math.round(val).toLocaleString('zh-TW');
       case 'percent':
         return `${val.toFixed(1)}%`;
       case 'duration': {
-        const mins = Math.floor(val / 60);
-        const secs = val % 60;
+        const roundedVal = Math.round(val);
+        const mins = Math.floor(roundedVal / 60);
+        const secs = roundedVal % 60;
         return `${mins}分${secs.toString().padStart(2, '0')}秒`;
       }
       case 'decimal':
@@ -53,9 +55,15 @@ function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps
       </div>
       <div className="scorecard-value">{formatValue(value)}</div>
       <div className={`scorecard-compare ${isPositive ? 'positive' : 'negative'}`}>
-        <span>{isPositive ? '▲' : '▼'}</span>
-        <span>{Math.abs(changePercent).toFixed(1)}%</span>
-        <span className="scorecard-compare-label">vs 前期</span>
+        {!hasPreviousData ? (
+          <span className="scorecard-compare-label">無前期資料</span>
+        ) : (
+          <>
+            <span>{isPositive ? '▲' : '▼'}</span>
+            <span>{Math.abs(changePercent).toFixed(1)}%</span>
+            <span className="scorecard-compare-label">vs 前期</span>
+          </>
+        )}
       </div>
     </div>
   );

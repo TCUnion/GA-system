@@ -6,7 +6,6 @@ import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { useConnection } from '../contexts/ConnectionContext';
 import { getDeviceData, getBrowserData, getScreenData } from '../services/ga4Service';
 import type { BrowserData, ScreenData } from '../services/ga4Service';
 import { deviceData as fb1, browserData as fb2, screenData as fb3 } from '../data/mockData';
@@ -29,12 +28,9 @@ const screenColumns: Column<ScreenData>[] = [
 ];
 
 function TechPage() {
-  const { dateRange } = useConnection();
-  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
-
-  const { data: devices } = useGA4Data(() => getDeviceData(args), fb1, [dateRange.startDate, dateRange.endDate]);
-  const { data: browsers } = useGA4Data(() => getBrowserData(args), fb2, [dateRange.startDate, dateRange.endDate]);
-  const { data: screens } = useGA4Data(() => getScreenData(args), fb3, [dateRange.startDate, dateRange.endDate]);
+  const { data: devices } = useGA4Data(getDeviceData, fb1);
+  const { data: browsers } = useGA4Data(getBrowserData, fb2);
+  const { data: screens } = useGA4Data(getScreenData, fb3);
 
   return (
     <div className="page-grid">

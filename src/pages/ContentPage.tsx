@@ -6,7 +6,6 @@ import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { useConnection } from '../contexts/ConnectionContext';
 import { getPageData, getLandingPageData, getDailyTraffic } from '../services/ga4Service';
 import type { PageData } from '../services/ga4Service';
 import { pageData as fb1, landingPageData as fb2, dailyTrafficData as fb3 } from '../data/mockData';
@@ -15,12 +14,9 @@ const CHART_COLORS = ['#3b82f6', '#22c997'];
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function ContentPage() {
-  const { dateRange } = useConnection();
-  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
-
-  const { data: pages } = useGA4Data(() => getPageData(args), fb1, [dateRange.startDate, dateRange.endDate]);
-  const { data: landing } = useGA4Data(() => getLandingPageData(args), fb2, [dateRange.startDate, dateRange.endDate]);
-  const { data: traffic } = useGA4Data(() => getDailyTraffic(args), fb3, [dateRange.startDate, dateRange.endDate]);
+  const { data: pages } = useGA4Data(getPageData, fb1);
+  const { data: landing } = useGA4Data(getLandingPageData, fb2);
+  const { data: traffic } = useGA4Data(getDailyTraffic, fb3);
 
   const maxViews = Math.max(...pages.map((p) => p.views), 1);
 

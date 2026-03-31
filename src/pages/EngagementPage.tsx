@@ -7,7 +7,6 @@ import DataTable from '../components/DataTable';
 import HourlyHeatmap from '../components/HourlyHeatmap';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { useConnection } from '../contexts/ConnectionContext';
 import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData } from '../services/ga4Service';
 import type { EventData } from '../services/ga4Service';
 import { eventData as fb1, weekdayData as fb2, hourlyData as fb3, hourlyByDateData as fb4 } from '../data/mockData';
@@ -18,13 +17,10 @@ const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function EngagementPage() {
-  const { dateRange } = useConnection();
-  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
-
-  const { data: events } = useGA4Data(() => getEventData(args), fb1, [dateRange.startDate, dateRange.endDate]);
-  const { data: weekday } = useGA4Data(() => getWeekdayData(args), fb2, [dateRange.startDate, dateRange.endDate]);
-  const { data: hourly } = useGA4Data(() => getHourlyData(args), fb3, [dateRange.startDate, dateRange.endDate]);
-  const { data: hourlyByDate } = useGA4Data(() => getHourlyByDateData(args), fb4, [dateRange.startDate, dateRange.endDate]);
+  const { data: events } = useGA4Data(getEventData, fb1);
+  const { data: weekday } = useGA4Data(getWeekdayData, fb2);
+  const { data: hourly } = useGA4Data(getHourlyData, fb3);
+  const { data: hourlyByDate } = useGA4Data(getHourlyByDateData, fb4);
 
   const maxEventCount = Math.max(...events.map((e) => e.eventCount), 1);
 
@@ -63,7 +59,6 @@ function EngagementPage() {
         </ChartCard>
       </div>
 
-      {/* 每小時 × 日期 熱力圖 */}
       <ChartCard title="每小時流量模式（依日期分類）" subtitle="X 軸 = 小時　Y 軸 = 日期　顏色深淺 = 工作階段數">
         <HourlyHeatmap data={hourlyByDate} />
       </ChartCard>

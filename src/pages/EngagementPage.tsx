@@ -32,7 +32,17 @@ function EngagementPage() {
 
   return (
     <div className="page-grid">
-      <div className="page-header"><h1>⚡ 參與分析</h1><p>了解使用者的行為模式和互動頻率</p></div>
+      <div className="page-header">
+        <h1>
+          {/* NOTE: SVG 閃電圖示取代 ⚡ emoji */}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+            <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          參與分析
+        </h1>
+        <p>了解使用者的行為模式和互動頻率</p>
+      </div>
+
       <div className="grid-2">
         <ChartCard title="每週流量分佈" subtitle="星期一到星期日的工作階段數">
           <ResponsiveContainer width="100%" height={300}>

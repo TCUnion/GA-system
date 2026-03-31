@@ -27,16 +27,17 @@ export interface KpiData {
   value: number;
   previousValue: number;
   format: 'number' | 'percent' | 'duration' | 'decimal';
-  icon: string;
+  // NOTE: iconKey 為語意鍵值，在 UI 元件中映射為對應的 SVG 圖示
+  iconKey: string;
 }
 
 export const kpiData: KpiData[] = [
-  { label: '瀏覽量', value: 28456, previousValue: 24120, format: 'number', icon: '👀' },
-  { label: '使用者', value: 12840, previousValue: 11200, format: 'number', icon: '👥' },
-  { label: '新使用者', value: 9650, previousValue: 8430, format: 'number', icon: '🆕' },
-  { label: '參與率', value: 62.8, previousValue: 58.3, format: 'percent', icon: '📊' },
-  { label: '平均停留時間', value: 185, previousValue: 162, format: 'duration', icon: '⏱️' },
-  { label: '每位使用者工作階段', value: 1.68, previousValue: 1.54, format: 'decimal', icon: '🔄' },
+  { label: '瀏覽量',         value: 28456, previousValue: 24120, format: 'number',   iconKey: 'views' },
+  { label: '使用者',         value: 12840, previousValue: 11200, format: 'number',   iconKey: 'users' },
+  { label: '新使用者',       value: 9650,  previousValue: 8430,  format: 'number',   iconKey: 'newUsers' },
+  { label: '參與率',         value: 62.8,  previousValue: 58.3,  format: 'percent',  iconKey: 'engagement' },
+  { label: '平均停留時間',   value: 185,   previousValue: 162,   format: 'duration', iconKey: 'duration' },
+  { label: '工作階段/使用者', value: 1.68,  previousValue: 1.54,  format: 'decimal',  iconKey: 'sessions' },
 ];
 
 // --- 每日流量趨勢 ---

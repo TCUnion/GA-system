@@ -30,7 +30,20 @@ function AudiencePage() {
 
   return (
     <div className="page-grid">
-      <div className="page-header"><h1>👥 使用者分析</h1><p>了解你的使用者輪廓、地區分佈和裝置偏好</p></div>
+      <div className="page-header">
+        <h1>
+          {/* NOTE: SVG 使用者群組圖示取代 👥 emoji */}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          使用者分析
+        </h1>
+        <p>了解你的使用者輪廓、地區分佈和裝置偏好</p>
+      </div>
+
       <div className="grid-2">
         <ChartCard title="裝置類型" subtitle="依裝置類別區分的使用者數">
           <ResponsiveContainer width="100%" height={300}>

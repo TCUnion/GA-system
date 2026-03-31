@@ -16,7 +16,8 @@ export interface KpiData {
   value: number;
   previousValue: number;
   format: 'number' | 'percent' | 'duration' | 'decimal';
-  icon: string;
+  // NOTE: iconKey 為語意鍵值，在 UI 元件中映射為對應的 SVG 圖示
+  iconKey: string;
 }
 
 export interface DailyTraffic {
@@ -173,12 +174,12 @@ export async function getOverviewKpi({ startDate, endDate }: DateRangeParams): P
 
   const { kpi, previousKpi } = data;
   return [
-    { label: '使用者', value: kpi.totalUsers, previousValue: previousKpi.totalUsers, format: 'number', icon: '👥' },
-    { label: '新使用者', value: kpi.newUsers, previousValue: previousKpi.newUsers, format: 'number', icon: '🆕' },
-    { label: '工作階段', value: kpi.sessions, previousValue: previousKpi.sessions, format: 'number', icon: '📊' },
-    { label: '瀏覽量', value: kpi.pageviews, previousValue: previousKpi.pageviews, format: 'number', icon: '👁️' },
-    { label: '平均工作階段', value: kpi.avgSessionDuration, previousValue: previousKpi.avgSessionDuration, format: 'duration', icon: '⏱️' },
-    { label: '跳出率', value: kpi.bounceRate, previousValue: previousKpi.bounceRate, format: 'percent', icon: '🚪' },
+    { label: '使用者',    value: kpi.totalUsers,          previousValue: previousKpi.totalUsers,          format: 'number',   iconKey: 'users' },
+    { label: '新使用者',  value: kpi.newUsers,            previousValue: previousKpi.newUsers,            format: 'number',   iconKey: 'newUsers' },
+    { label: '工作階段',  value: kpi.sessions,            previousValue: previousKpi.sessions,            format: 'number',   iconKey: 'sessions' },
+    { label: '瀏覽量',    value: kpi.pageviews,           previousValue: previousKpi.pageviews,           format: 'number',   iconKey: 'views' },
+    { label: '平均停留',  value: kpi.avgSessionDuration,  previousValue: previousKpi.avgSessionDuration,  format: 'duration', iconKey: 'duration' },
+    { label: '跳出率',    value: kpi.bounceRate,          previousValue: previousKpi.bounceRate,          format: 'percent',  iconKey: 'engagement' },
   ];
 }
 

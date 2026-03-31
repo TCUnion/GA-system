@@ -31,7 +31,18 @@ function AcquisitionPage() {
 
   return (
     <div className="page-grid">
-      <div className="page-header"><h1>🔗 流量來源分析</h1><p>了解使用者從哪些管道來到你的網站</p></div>
+      <div className="page-header">
+        <h1>
+          {/* NOTE: SVG 連結圖示取代 🔗 emoji */}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          流量來源分析
+        </h1>
+        <p>了解使用者從哪些管道來到你的網站</p>
+      </div>
+
       <div className="grid-2">
         <ChartCard title="管道分佈" subtitle="各流量管道的工作階段佔比">
           <ResponsiveContainer width="100%" height={320}>

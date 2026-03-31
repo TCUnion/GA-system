@@ -8,7 +8,7 @@ import './ScoreCard.css';
  * @param value - 目前數值
  * @param previousValue - 前期數值（用於計算變化率）
  * @param format - 數值格式類型
- * @param icon - 顯示圖示
+ * @param icon - SVG 圖示節點
  */
 
 interface ScoreCardProps {
@@ -16,8 +16,22 @@ interface ScoreCardProps {
   value: number;
   previousValue: number;
   format: 'number' | 'percent' | 'duration' | 'decimal';
-  icon: string;
+  icon: React.ReactNode;
 }
+
+// NOTE: 上升趨勢 SVG 箭頭
+const ArrowUp = () => (
+  <svg className="trend-arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2 9 6 3 10 9" />
+  </svg>
+);
+
+// NOTE: 下降趨勢 SVG 箭頭
+const ArrowDown = () => (
+  <svg className="trend-arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2 3 6 9 10 3" />
+  </svg>
+);
 
 function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps) {
   // NOTE: 計算與前期的變化百分比
@@ -51,6 +65,7 @@ function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps
     <div className="scorecard glass-card">
       <div className="scorecard-header">
         <span className="scorecard-label">{label}</span>
+        {/* NOTE: SVG 圖示透過 scorecard-icon 類別統一控制大小與顏色 */}
         <span className="scorecard-icon">{icon}</span>
       </div>
       <div className="scorecard-value">{formatValue(value)}</div>
@@ -59,7 +74,7 @@ function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps
           <span className="scorecard-compare-label">無前期資料</span>
         ) : (
           <>
-            <span>{isPositive ? '▲' : '▼'}</span>
+            {isPositive ? <ArrowUp /> : <ArrowDown />}
             <span>{Math.abs(changePercent).toFixed(1)}%</span>
             <span className="scorecard-compare-label">vs 前期</span>
           </>

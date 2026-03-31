@@ -34,7 +34,18 @@ function TechPage() {
 
   return (
     <div className="page-grid">
-      <div className="page-header"><h1>📱 技術分析</h1><p>了解使用者使用的裝置、瀏覽器和螢幕解析度</p></div>
+      <div className="page-header">
+        <h1>
+          {/* NOTE: SVG 手機圖示取代 📱 emoji */}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <line x1="12" y1="18" x2="12.01" y2="18" />
+          </svg>
+          技術分析
+        </h1>
+        <p>了解使用者使用的裝置、瀏覽器和螢幕解析度</p>
+      </div>
+
       <div className="grid-2">
         <ChartCard title="裝置類型分佈" subtitle="手機 / 桌機 / 平板佔比">
           <ResponsiveContainer width="100%" height={320}>

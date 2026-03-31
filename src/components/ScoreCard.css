@@ -28,7 +28,20 @@
 }
 
 .scorecard-icon {
-  font-size: 1.25rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}
+
+.scorecard-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-accent);
 }
 
 .scorecard-value {
@@ -43,9 +56,16 @@
 .scorecard-compare {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+/* NOTE: 趨勢箭頭 SVG 尺寸 */
+.trend-arrow {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .scorecard-compare.positive {

@@ -47,19 +47,7 @@ function formatLastUpdated(isoString: string | null): string {
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { status, lastUpdatedAt, refresh, isSyncing } = useConnection();
-
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}/${(today.getMonth() + 1)
-    .toString()
-    .padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`;
-
-  // NOTE: 計算 30 天前的日期，用於顯示日期範圍
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const startDateStr = `${thirtyDaysAgo.getFullYear()}/${(thirtyDaysAgo.getMonth() + 1)
-    .toString()
-    .padStart(2, '0')}/${thirtyDaysAgo.getDate().toString().padStart(2, '0')}`;
+  const { status, lastUpdatedAt, dateRange, setDateRange } = useConnection();
 
   // 連線狀態文字與樣式映射
   const statusConfig = {
@@ -130,17 +118,10 @@ function Layout() {
           </div>
           <div className="top-bar-right">
             <DateRangePicker 
-              initialStartDate={startDateStr.replace(/\//g, '-')} 
-              initialEndDate={dateStr.replace(/\//g, '-')} 
+              initialStartDate={dateRange.startDate} 
+              initialEndDate={dateRange.endDate} 
+              onChange={(start, end) => setDateRange(start, end)}
             />
-            <button
-              className={`refresh-btn ${isSyncing ? 'syncing' : ''}`}
-              onClick={() => refresh(true)}
-              title="立即從 GA4 拉取最新資料並重新整理畫面"
-              disabled={isSyncing}
-            >
-              {isSyncing ? '⏳ 同步中...' : '🔄 強制同步'}
-            </button>
           </div>
         </div>
         <div className="page-content">

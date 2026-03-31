@@ -6,6 +6,7 @@ import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
+import { useConnection } from '../contexts/ConnectionContext';
 import { getDeviceData, getOsData, getCityData, getLanguageData } from '../services/ga4Service';
 import type { CityData } from '../services/ga4Service';
 import { deviceData as fb1, osData as fb2, cityData as fb3, languageData as fb4 } from '../data/mockData';
@@ -23,10 +24,13 @@ const cityColumns: Column<CityData>[] = [
 ];
 
 function AudiencePage() {
-  const { data: devices } = useGA4Data(getDeviceData, fb1);
-  const { data: os } = useGA4Data(getOsData, fb2);
-  const { data: cities } = useGA4Data(getCityData, fb3);
-  const { data: languages } = useGA4Data(getLanguageData, fb4);
+  const { dateRange } = useConnection();
+  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+
+  const { data: devices } = useGA4Data(() => getDeviceData(args), fb1, [dateRange.startDate, dateRange.endDate]);
+  const { data: os } = useGA4Data(() => getOsData(args), fb2, [dateRange.startDate, dateRange.endDate]);
+  const { data: cities } = useGA4Data(() => getCityData(args), fb3, [dateRange.startDate, dateRange.endDate]);
+  const { data: languages } = useGA4Data(() => getLanguageData(args), fb4, [dateRange.startDate, dateRange.endDate]);
 
   return (
     <div className="page-grid">

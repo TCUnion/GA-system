@@ -6,6 +6,7 @@ import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
+import { useConnection } from '../contexts/ConnectionContext';
 import { getEventData, getWeekdayData, getHourlyData } from '../services/ga4Service';
 import type { EventData } from '../services/ga4Service';
 import { eventData as fb1, weekdayData as fb2, hourlyData as fb3 } from '../data/mockData';
@@ -16,9 +17,12 @@ const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function EngagementPage() {
-  const { data: events } = useGA4Data(getEventData, fb1);
-  const { data: weekday } = useGA4Data(getWeekdayData, fb2);
-  const { data: hourly } = useGA4Data(getHourlyData, fb3);
+  const { dateRange } = useConnection();
+  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+
+  const { data: events } = useGA4Data(() => getEventData(args), fb1, [dateRange.startDate, dateRange.endDate]);
+  const { data: weekday } = useGA4Data(() => getWeekdayData(args), fb2, [dateRange.startDate, dateRange.endDate]);
+  const { data: hourly } = useGA4Data(() => getHourlyData(args), fb3, [dateRange.startDate, dateRange.endDate]);
 
   const maxEventCount = Math.max(...events.map((e) => e.eventCount), 1);
 

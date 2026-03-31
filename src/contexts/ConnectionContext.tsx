@@ -20,7 +20,18 @@ interface ConnectionState {
   refreshKey: number;
   /** 是否正在從 GA4 後端同步中 */
   isSyncing: boolean;
+  /** 全局選擇的起始與結束日期 */
+  dateRange: { startDate: string; endDate: string };
+  /** 設定全局日期並觸發所有圖表更新 */
+  setDateRange: (start: string, end: string) => void;
 }
+
+const today = new Date();
+const sevenDaysAgo = new Date(today);
+sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+const defaultStartDate = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`;
+const defaultEndDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
 const ConnectionContext = createContext<ConnectionState>({
   status: 'checking',
@@ -28,6 +39,8 @@ const ConnectionContext = createContext<ConnectionState>({
   refresh: async () => {},
   refreshKey: 0,
   isSyncing: false,
+  dateRange: { startDate: defaultStartDate, endDate: defaultEndDate },
+  setDateRange: () => {},
 });
 
 export function ConnectionProvider({ children }: { children: ReactNode }) {
@@ -35,6 +48,16 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  const [dateRange, setDateRangeState] = useState({
+    startDate: defaultStartDate,
+    endDate: defaultEndDate
+  });
+
+  const setDateRange = useCallback((startDate: string, endDate: string) => {
+    setDateRangeState({ startDate, endDate });
+    setRefreshKey((prev) => prev + 1); // 日期改變時觸發刷新
+  }, []);
 
   /**
    * 檢查 Supabase 連線狀態
@@ -96,7 +119,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   }, [checkConnection]);
 
   return (
-    <ConnectionContext.Provider value={{ status, lastUpdatedAt, refresh, refreshKey, isSyncing }}>
+    <ConnectionContext.Provider value={{ status, lastUpdatedAt, refresh, refreshKey, isSyncing, dateRange, setDateRange }}>
       {children}
     </ConnectionContext.Provider>
   );

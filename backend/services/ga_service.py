@@ -190,6 +190,41 @@ class GAService:
             logger.error(f"GA4 總覽報表查詢發生錯誤: {e}")
             raise e
 
+    def fetch_daily_traffic(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+        """
+        取得每日流量趨勢
+        Returns: { "dailyTraffic": [ ... ] }
+        """
+        logger.info(f"📈 取得 Daily Traffic 報表 ({start_date} ~ {end_date})...")
+        date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
+
+        try:
+            response = self._run_report(
+                dimensions=["date"],
+                metrics=["totalUsers", "newUsers", "sessions", "screenPageViews"],
+                date_ranges=date_ranges,
+                order_bys=[OrderBy(dimension=OrderBy.DimensionOrderBy(dimension_name="date"), desc=False)],
+            )
+            daily_traffic = []
+            for row in response.rows:
+                date_str = row.dimension_values[0].value
+                d = datetime.strptime(date_str, "%Y%m%d")
+                daily_traffic.append({
+                    "date": f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}",
+                    "label": f"{d.month}/{d.day}",
+                    "users": int(row.metric_values[0].value),
+                    "newUsers": int(row.metric_values[1].value),
+                    "sessions": int(row.metric_values[2].value),
+                    "views": int(row.metric_values[3].value),
+                })
+
+            return {
+                "dailyTraffic": daily_traffic,
+            }
+        except Exception as e:
+            logger.error(f"GA4 每日流量報表查詢失敗: {e}")
+            raise e
+
     # ----- 2. Audience 使用者分析報表 -----
 
     def fetch_audience_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:

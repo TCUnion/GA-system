@@ -38,7 +38,8 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 280px;
+  width: auto;
+  min-width: 380px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -65,11 +66,49 @@
   font-weight: 500;
 }
 
-.date-picker-body {
+.date-picker-body-split {
+  display: flex;
+}
+
+.date-picker-presets {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm);
+  border-right: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+  min-width: 120px;
+}
+
+.date-picker-presets button {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.date-picker-presets button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.date-picker-presets button.active {
+  background: var(--color-accent);
+  color: white;
+}
+
+.date-picker-custom-inputs {
   padding: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  flex-grow: 1;
+  transition: opacity 0.2s;
 }
 
 .date-input-group {
@@ -111,6 +150,7 @@
 .date-picker-footer button {
   padding: 6px 14px;
   border-radius: var(--radius-sm);
+  font-family: inherit;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;

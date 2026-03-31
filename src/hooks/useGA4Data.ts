@@ -19,9 +19,12 @@ interface UseGA4DataResult<T> {
   source: 'supabase' | 'fallback';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useGA4Data<T>(
   fetchFn: () => Promise<T>,
   fallback: T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deps: any[] = []
 ): UseGA4DataResult<T> {
   const [data, setData] = useState<T>(fallback);
   const [loading, setLoading] = useState(true);
@@ -51,7 +54,7 @@ export function useGA4Data<T>(
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchFn, refreshKey]);
+  }, [refreshKey, ...deps]);
 
   useEffect(() => {
     loadData();

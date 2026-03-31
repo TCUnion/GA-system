@@ -5,6 +5,7 @@ import {
 import ScoreCard from '../components/ScoreCard';
 import ChartCard from '../components/ChartCard';
 import { useGA4Data } from '../hooks/useGA4Data';
+import { useConnection } from '../contexts/ConnectionContext';
 import {
   getOverviewKpi, getDailyTraffic, getChannelData, getDeviceData,
 } from '../services/ga4Service';
@@ -69,10 +70,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 function OverviewPage() {
-  const { data: kpi, loading: kpiLoading } = useGA4Data(getOverviewKpi, fallbackKpi);
-  const { data: traffic } = useGA4Data(getDailyTraffic, fallbackTraffic);
-  const { data: channels } = useGA4Data(getChannelData, fallbackChannel);
-  const { data: devices } = useGA4Data(getDeviceData, fallbackDevice);
+  const { dateRange } = useConnection();
+  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+
+  const { data: kpi, loading: kpiLoading } = useGA4Data(() => getOverviewKpi(args), fallbackKpi, [dateRange.startDate, dateRange.endDate]);
+  const { data: traffic } = useGA4Data(() => getDailyTraffic(args), fallbackTraffic, [dateRange.startDate, dateRange.endDate]);
+  const { data: channels } = useGA4Data(() => getChannelData(args), fallbackChannel, [dateRange.startDate, dateRange.endDate]);
+  const { data: devices } = useGA4Data(() => getDeviceData(args), fallbackDevice, [dateRange.startDate, dateRange.endDate]);
 
   return (
     <div className="page-grid">

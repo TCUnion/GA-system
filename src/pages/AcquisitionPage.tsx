@@ -6,6 +6,7 @@ import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
+import { useConnection } from '../contexts/ConnectionContext';
 import { getChannelData, getSourceMediumData, getSocialData } from '../services/ga4Service';
 import type { SourceMediumData } from '../services/ga4Service';
 import { channelData as fb1, sourceMediumData as fb2, socialData as fb3 } from '../data/mockData';
@@ -25,9 +26,12 @@ const smColumns: Column<SourceMediumData>[] = [
 ];
 
 function AcquisitionPage() {
-  const { data: channels } = useGA4Data(getChannelData, fb1);
-  const { data: sm } = useGA4Data(getSourceMediumData, fb2);
-  const { data: social } = useGA4Data(getSocialData, fb3);
+  const { dateRange } = useConnection();
+  const args = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+
+  const { data: channels } = useGA4Data(() => getChannelData(args), fb1, [dateRange.startDate, dateRange.endDate]);
+  const { data: sm } = useGA4Data(() => getSourceMediumData(args), fb2, [dateRange.startDate, dateRange.endDate]);
+  const { data: social } = useGA4Data(() => getSocialData(args), fb3, [dateRange.startDate, dateRange.endDate]);
 
   return (
     <div className="page-grid">

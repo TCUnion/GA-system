@@ -30,6 +30,8 @@ def get_custom_report(
             return ga_service.fetch_engagement_report(start_date, end_date)
         elif report_type == "tech":
             return ga_service.fetch_tech_report(start_date, end_date)
+        elif report_type == "traffic":
+            return ga_service.fetch_daily_traffic(start_date, end_date)
         else:
             raise HTTPException(status_code=400, detail=f"未知的報表類型: {report_type}")
     except Exception as e:

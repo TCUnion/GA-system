@@ -268,6 +268,32 @@ export const hourlyData: HourlyData[] = Array.from({ length: 24 }, (_, i) => {
   };
 });
 
+// --- 每日 × 每小時熱力圖資料 ---
+export interface HourlyByDateRow {
+  date: string;
+  label: string;
+  hours: number[];
+}
+
+const HOURLY_PATTERN = [
+  18, 10, 6, 4, 4, 6, 14, 28, 52, 78,
+  92, 102, 112, 106, 102, 96, 86, 78, 72,
+  84, 90, 78, 56, 32,
+];
+
+export const hourlyByDateData: HourlyByDateRow[] = generateDates(7).map((date) => {
+  const dayOfWeek = new Date(date).getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const multiplier = isWeekend ? 1.45 : 1.0;
+  return {
+    date,
+    label: formatDateLabel(date),
+    hours: HOURLY_PATTERN.map((base) =>
+      Math.max(0, Math.round(base * multiplier + (Math.random() - 0.5) * base * 0.4))
+    ),
+  };
+});
+
 // --- 螢幕解析度 ---
 export interface ScreenData {
   resolution: string;

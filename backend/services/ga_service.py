@@ -503,7 +503,7 @@ class GAService:
                 for i in [1, 2, 3, 4, 5, 6, 0]
             ]
 
-            # 每小時流量分佈
+            # 每小時流量分佈（總覽，X 軸=小時）
             hourly_response = self._run_report(
                 dimensions=["hour"],
                 metrics=["sessions"],
@@ -518,10 +518,37 @@ class GAService:
                 for h in range(24)
             ]
 
+            # 每日 × 每小時 熱力圖資料（date+hour 二維）
+            hourly_date_response = self._run_report(
+                dimensions=["date", "hour"],
+                metrics=["sessions"],
+                date_ranges=date_ranges,
+                order_bys=[OrderBy(dimension=OrderBy.DimensionOrderBy(dimension_name="date"), desc=False)],
+            )
+            # 聚合為 { date: { hour: sessions } }
+            hourly_by_date_raw: dict[str, dict[str, int]] = {}
+            for row in hourly_date_response.rows:
+                d = row.dimension_values[0].value   # e.g. "20250101"
+                h = row.dimension_values[1].value   # e.g. "9"
+                s = int(row.metric_values[0].value)
+                if d not in hourly_by_date_raw:
+                    hourly_by_date_raw[d] = {}
+                hourly_by_date_raw[d][h] = s
+
+            hourly_by_date = [
+                {
+                    "date": d,
+                    "label": f"{d[4:6]}/{d[6:8]}",  # MM/DD 格式
+                    "hours": [hourly_by_date_raw[d].get(str(h), 0) for h in range(24)],
+                }
+                for d in sorted(hourly_by_date_raw)
+            ]
+
             return {
                 "events": events,
                 "weekday": weekday,
                 "hourly": hourly,
+                "hourlyByDate": hourly_by_date,
             }
         except Exception as e:
             logger.error(f"GA4 參與分析報表查詢失敗: {e}")

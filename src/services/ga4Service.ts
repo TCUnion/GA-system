@@ -85,6 +85,12 @@ export interface HourlyData {
   sessions: number;
 }
 
+export interface HourlyByDateRow {
+  date: string;
+  label: string;
+  hours: number[];  // 長度 24，索引對應 0-23 時
+}
+
 export interface BrowserData {
   name: string;
   users: number;
@@ -278,6 +284,14 @@ export async function getWeekdayData({ startDate, endDate }: DateRangeParams): P
 export async function getHourlyData({ startDate, endDate }: DateRangeParams): Promise<HourlyData[]> {
   const data = await fetchReportData('engagement', startDate, endDate);
   return data?.hourly || [];
+}
+
+/**
+ * 取得每日 × 每小時熱力圖資料
+ */
+export async function getHourlyByDateData({ startDate, endDate }: DateRangeParams): Promise<HourlyByDateRow[]> {
+  const data = await fetchReportData('engagement', startDate, endDate);
+  return data?.hourlyByDate || [];
 }
 
 /**

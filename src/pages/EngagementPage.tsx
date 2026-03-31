@@ -4,12 +4,13 @@ import {
 } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
+import HourlyHeatmap from '../components/HourlyHeatmap';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { useConnection } from '../contexts/ConnectionContext';
-import { getEventData, getWeekdayData, getHourlyData } from '../services/ga4Service';
+import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData } from '../services/ga4Service';
 import type { EventData } from '../services/ga4Service';
-import { eventData as fb1, weekdayData as fb2, hourlyData as fb3 } from '../data/mockData';
+import { eventData as fb1, weekdayData as fb2, hourlyData as fb3, hourlyByDateData as fb4 } from '../data/mockData';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +24,7 @@ function EngagementPage() {
   const { data: events } = useGA4Data(() => getEventData(args), fb1, [dateRange.startDate, dateRange.endDate]);
   const { data: weekday } = useGA4Data(() => getWeekdayData(args), fb2, [dateRange.startDate, dateRange.endDate]);
   const { data: hourly } = useGA4Data(() => getHourlyData(args), fb3, [dateRange.startDate, dateRange.endDate]);
+  const { data: hourlyByDate } = useGA4Data(() => getHourlyByDateData(args), fb4, [dateRange.startDate, dateRange.endDate]);
 
   const maxEventCount = Math.max(...events.map((e) => e.eventCount), 1);
 
@@ -47,7 +49,7 @@ function EngagementPage() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="每小時流量模式" subtitle="24 小時的工作階段分佈">
+        <ChartCard title="每小時流量模式" subtitle="24 小時的工作階段總覽">
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={hourly}>
               <defs><linearGradient id="hourGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a855f7" stopOpacity={0.3} /><stop offset="100%" stopColor="#a855f7" stopOpacity={0.02} /></linearGradient></defs>
@@ -60,6 +62,12 @@ function EngagementPage() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      {/* 每小時 × 日期 熱力圖 */}
+      <ChartCard title="每小時流量模式（依日期分類）" subtitle="X 軸 = 小時　Y 軸 = 日期　顏色深淺 = 工作階段數">
+        <HourlyHeatmap data={hourlyByDate} />
+      </ChartCard>
+
       <ChartCard title="事件觸發明細" subtitle="各事件的觸發次數和觸及使用者數">
         <DataTable columns={eventColumns} data={events} />
       </ChartCard>

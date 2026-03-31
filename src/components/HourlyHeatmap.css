@@ -1,0 +1,132 @@
+/* HourlyHeatmap — 每小時 × 日期熱力圖樣式 */
+
+.heatmap-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  user-select: none;
+}
+
+/* X 軸 (小時刻度) */
+.heatmap-x-axis {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 2px;
+}
+
+.heatmap-y-label-spacer {
+  flex: 0 0 36px;
+}
+
+.heatmap-x-tick {
+  flex: 1 1 0;
+  text-align: center;
+  font-size: 9px;
+  color: hsl(215, 15%, 40%);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* 主要網格 */
+.heatmap-grid-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heatmap-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+}
+
+/* Y 軸日期標籤 */
+.heatmap-y-label {
+  flex: 0 0 36px;
+  font-size: 9.5px;
+  color: hsl(215, 18%, 52%);
+  text-align: right;
+  padding-right: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 每個色塊 */
+.heatmap-cell {
+  flex: 1 1 0;
+  height: 100%;
+  border-radius: 3px;
+  cursor: default;
+  transition: transform 0.1s ease, filter 0.1s ease;
+  position: relative;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.15);
+  filter: brightness(1.35);
+  z-index: 10;
+}
+
+/* Tooltip via CSS pseudo-element */
+.heatmap-cell[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: hsl(222, 44%, 10%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: hsl(215, 20%, 85%);
+  font-size: 10px;
+  white-space: pre;
+  line-height: 1.5;
+  padding: 5px 9px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* 圖例 */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 42px;
+}
+
+.legend-label {
+  font-size: 10px;
+  color: hsl(215, 15%, 45%);
+}
+
+.legend-gradient {
+  flex: 0 0 120px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    rgba(85, 20, 200, 0.25),
+    rgba(190, 40, 255, 1)
+  );
+}
+
+.legend-max {
+  font-size: 10px;
+  color: hsl(215, 15%, 45%);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 空資料狀態 */
+.heatmap-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: hsl(215, 15%, 40%);
+  font-size: 13px;
+}

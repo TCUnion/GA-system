@@ -327,9 +327,11 @@ export async function getLastUpdatedAt(): Promise<string | null> {
       .from('ga4_cache')
       .select('fetched_at')
       .eq('report_type', 'overview')
-      .single();
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error) return null;
+    if (error || !data) return null;
     return data.fetched_at;
   } catch {
     return null;

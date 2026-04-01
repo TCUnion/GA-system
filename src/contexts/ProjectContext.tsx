@@ -49,7 +49,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const STORAGE_KEY = 'ga4_current_project_id';
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [role, setRole] = useState<'admin' | 'viewer'>('viewer');
@@ -68,7 +68,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`${API_BASE_URL}/api/admin/me/projects`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (!res.ok) throw new Error('無法取得專案清單');
+      if (!res.ok) {
+        if (res.status === 401) {
+          console.warn('Token 已過期或無效，強制登出...');
+          await signOut();
+        }
+        throw new Error('無法取得專案清單');
+      }
       const json = await res.json();
       const fetchedProjects: Project[] = json.projects || [];
       const fetchedRole: 'admin' | 'viewer' = json.role || 'viewer';

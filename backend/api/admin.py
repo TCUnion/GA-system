@@ -64,6 +64,9 @@ class CreateUserRequest(BaseModel):
 class UpdateUserRoleRequest(BaseModel):
     role: str  # 'admin' | 'viewer'
 
+class UpdateUserPasswordRequest(BaseModel):
+    password: str
+
 class CreateProjectRequest(BaseModel):
     name: str
     ga_property_id: str
@@ -171,6 +174,30 @@ async def update_user_role(
         return {"message": "角色更新成功", "role": body.role}
     except Exception as e:
         logger.error(f"更新使用者角色失敗: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/admin/users/{user_id}/password")
+async def update_user_password(
+    user_id: str,
+    body: UpdateUserPasswordRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """
+    更新使用者密碼。
+    僅限 admin 呼叫。
+    """
+    await _require_admin(authorization)
+    if len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="密碼長度至少需 6 個字元")
+    try:
+        admin_client.auth.admin.update_user_by_id(
+            user_id,
+            {"password": body.password}
+        )
+        return {"message": "密碼更新成功"}
+    except Exception as e:
+        logger.error(f"更新使用者密碼失敗: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

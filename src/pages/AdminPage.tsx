@@ -27,7 +27,7 @@ interface ProjectRecord extends Project {
 }
 
 function AdminPage() {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const { reloadProjects } = useProject();
   const [activeTab, setActiveTab] = useState<'users' | 'projects'>('users');
 
@@ -59,6 +59,22 @@ function AdminPage() {
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [permLoading, setPermLoading] = useState(false);
 
+  // ── 修改密碼管理 ──
+  const [passwordModalUserId, setPasswordModalUserId] = useState<string | null>(null);
+  const [passwordModalEmail, setPasswordModalEmail] = useState<string>('');
+  const [newPasswordValue, setNewPasswordValue] = useState<string>('');
+  const [passwordModalError, setPasswordModalError] = useState<string | null>(null);
+  const [passwordModalLoading, setPasswordModalLoading] = useState(false);
+
+  // ── 編輯專案管理 ──
+  const [editingProject, setEditingProject] = useState<ProjectRecord | null>(null);
+  const [editProjectName, setEditProjectName] = useState('');
+  const [editProjectPropertyId, setEditProjectPropertyId] = useState('');
+  const [editProjectDescription, setEditProjectDescription] = useState('');
+  const [editProjectColor, setEditProjectColor] = useState('#3b82f6');
+  const [editProjectError, setEditProjectError] = useState<string | null>(null);
+  const [editProjectLoading, setEditProjectLoading] = useState(false);
+
   // ── 通用 API 呼叫 ──
   const apiCall = useCallback(
     async (path: string, options: RequestInit = {}) => {
@@ -71,6 +87,10 @@ function AdminPage() {
         },
       });
       if (!res.ok) {
+        if (res.status === 401) {
+          console.warn('Token 已過期或無效，強制登出...');
+          await signOut();
+        }
         const err = await res.json().catch(() => ({ detail: '操作失敗' }));
         throw new Error(err.detail || '操作失敗');
       }
@@ -155,6 +175,43 @@ function AdminPage() {
     }
   }
 
+  // ── 修改使用者密碼 ──
+  function openPasswordModal(id: string, email: string) {
+    setPasswordModalUserId(id);
+    setPasswordModalEmail(email);
+    setNewPasswordValue('');
+    setPasswordModalError(null);
+  }
+
+  function closePasswordModal() {
+    setPasswordModalUserId(null);
+    setPasswordModalEmail('');
+    setNewPasswordValue('');
+    setPasswordModalError(null);
+  }
+
+  async function handleUpdatePassword() {
+    if (!passwordModalUserId) return;
+    if (newPasswordValue.length < 6) {
+      setPasswordModalError('密碼長度至少需 6 個字元');
+      return;
+    }
+    setPasswordModalError(null);
+    setPasswordModalLoading(true);
+    try {
+      await apiCall(`/api/admin/users/${passwordModalUserId}/password`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: newPasswordValue }),
+      });
+      alert('密碼更新成功！');
+      closePasswordModal();
+    } catch (err: unknown) {
+      setPasswordModalError(err instanceof Error ? err.message : '更新失敗');
+    } finally {
+      setPasswordModalLoading(false);
+    }
+  }
+
   // ── 新增專案 ──
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault();
@@ -192,6 +249,49 @@ function AdminPage() {
       await reloadProjects();
     } catch (err) {
       console.error('刪除專案失敗:', err);
+    }
+  }
+
+  // ── 開啟 / 關閉專案編輯 ──
+  function openEditProjectModal(project: ProjectRecord) {
+    setEditingProject(project);
+    setEditProjectName(project.name);
+    setEditProjectPropertyId(project.ga_property_id || '');
+    setEditProjectDescription(project.description || '');
+    setEditProjectColor(project.color || '#3b82f6');
+    setEditProjectError(null);
+  }
+
+  function closeEditProjectModal() {
+    setEditingProject(null);
+    setEditProjectError(null);
+  }
+
+  async function handleUpdateProject() {
+    if (!editingProject) return;
+    if (!editProjectName.trim()) {
+      setEditProjectError('請輸入專案名稱');
+      return;
+    }
+    setEditProjectError(null);
+    setEditProjectLoading(true);
+    try {
+      await apiCall(`/api/admin/projects/${editingProject.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editProjectName,
+          ga_property_id: editProjectPropertyId || null,
+          description: editProjectDescription || null,
+          color: editProjectColor || null,
+        }),
+      });
+      await loadProjects();
+      await reloadProjects();
+      closeEditProjectModal();
+    } catch (err: unknown) {
+      setEditProjectError(err instanceof Error ? err.message : '更新專案失敗');
+    } finally {
+      setEditProjectLoading(false);
     }
   }
 
@@ -368,6 +468,17 @@ function AdminPage() {
                         <td className="admin-actions">
                           <button
                             className="admin-btn admin-btn--sm admin-btn--ghost"
+                            onClick={() => openPasswordModal(user.id, user.email)}
+                            title="修改密碼"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            密碼
+                          </button>
+                          <button
+                            className="admin-btn admin-btn--sm admin-btn--ghost"
                             onClick={() => openPermissions(user.id)}
                             title="管理專案授權"
                           >
@@ -492,6 +603,16 @@ function AdminPage() {
                     </div>
                     <div className="admin-project-actions">
                       <button
+                        className="admin-btn admin-btn--sm admin-btn--ghost"
+                        onClick={() => openEditProjectModal(project)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        編輯
+                      </button>
+                      <button
                         className="admin-btn admin-btn--sm admin-btn--danger"
                         onClick={() => handleDeleteProject(project.id, project.name)}
                       >
@@ -542,6 +663,104 @@ function AdminPage() {
             <div className="admin-modal-footer">
               <button className="admin-btn admin-btn--ghost" onClick={() => setSelectedUserId(null)}>取消</button>
               <button id="save-perms-btn" className="admin-btn admin-btn--primary" onClick={savePermissions}>儲存授權</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 修改密碼 Modal ── */}
+      {passwordModalUserId && (
+        <div className="admin-modal-overlay" onClick={closePasswordModal}>
+          <div className="admin-modal glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>重設密碼</h3>
+              <button className="admin-modal-close" onClick={closePasswordModal}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ marginBottom: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                為使用者 <strong>{passwordModalEmail}</strong> 設定新密碼：
+              </p>
+              <div className="form-group" style={{ marginBottom: '8px' }}>
+                <input
+                  type="password"
+                  className="admin-input"
+                  placeholder="至少 6 個字元"
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  disabled={passwordModalLoading}
+                />
+              </div>
+              {passwordModalError && <div className="admin-error" style={{ marginTop: '8px' }}>{passwordModalError}</div>}
+            </div>
+            <div className="admin-modal-footer">
+              <button className="admin-btn admin-btn--ghost" onClick={closePasswordModal} disabled={passwordModalLoading}>取消</button>
+              <button className="admin-btn admin-btn--primary" onClick={handleUpdatePassword} disabled={passwordModalLoading}>
+                {passwordModalLoading ? '儲存中...' : '儲存新密碼'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 編輯專案 Modal ── */}
+      {editingProject && (
+        <div className="admin-modal-overlay" onClick={closeEditProjectModal}>
+          <div className="admin-modal glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>編輯專案</h3>
+              <button className="admin-modal-close" onClick={closeEditProjectModal}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label">專案名稱</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  value={editProjectName}
+                  onChange={(e) => setEditProjectName(e.target.value)}
+                  disabled={editProjectLoading}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label">Property ID</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  value={editProjectPropertyId}
+                  onChange={(e) => setEditProjectPropertyId(e.target.value)}
+                  disabled={editProjectLoading}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label">識別色</label>
+                <div className="color-input-wrapper">
+                  <input
+                    type="color"
+                    className="admin-color-input"
+                    value={editProjectColor}
+                    onChange={(e) => setEditProjectColor(e.target.value)}
+                    disabled={editProjectLoading}
+                  />
+                  <span className="color-value">{editProjectColor}</span>
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label">描述</label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  value={editProjectDescription}
+                  onChange={(e) => setEditProjectDescription(e.target.value)}
+                  disabled={editProjectLoading}
+                />
+              </div>
+              {editProjectError && <div className="admin-error" style={{ marginTop: '8px' }}>{editProjectError}</div>}
+            </div>
+            <div className="admin-modal-footer">
+              <button className="admin-btn admin-btn--ghost" onClick={closeEditProjectModal} disabled={editProjectLoading}>取消</button>
+              <button className="admin-btn admin-btn--primary" onClick={handleUpdateProject} disabled={editProjectLoading}>
+                {editProjectLoading ? '儲存中...' : '儲存變更'}
+              </button>
             </div>
           </div>
         </div>

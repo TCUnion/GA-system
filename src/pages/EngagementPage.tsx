@@ -17,10 +17,14 @@ const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function EngagementPage() {
-  const { data: events } = useGA4Data(getEventData, fb1);
+  const { data: events, source: eventsSource } = useGA4Data(getEventData, fb1);
   const { data: weekday } = useGA4Data(getWeekdayData, fb2);
   const { data: hourly } = useGA4Data(getHourlyData, fb3);
   const { data: hourlyByDate } = useGA4Data(getHourlyByDateData, fb4);
+
+  // NOTE: 四個圖表共用同一個 engagement API 端點，
+  //       若任一回傳 fallback，通常表示 GA4 Property 存取失敗（如 403）
+  const isFallback = eventsSource === 'fallback';
 
   const maxEventCount = Math.max(...events.map((e) => e.eventCount), 1);
 
@@ -42,6 +46,30 @@ function EngagementPage() {
         </h1>
         <p>了解使用者的行為模式和互動頻率</p>
       </div>
+
+      {/* NOTE: 當資料來源為 fallback（模擬）時，顯示警示橫幅提醒使用者 */}
+      {isFallback && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 16px',
+          borderRadius: 10,
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          color: 'hsl(38, 92%, 70%)',
+          fontSize: '0.82rem',
+          marginBottom: 4,
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16, flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>
+            <strong>目前顯示為模擬資料。</strong>
+            可能原因：尚未取得此專案 GA4 Property 的存取授權（請至 GA4 後台 → 管理員 → Property Access Management，新增服務帳號為「Viewer」），或是目前日期區間尚無資料。
+          </span>
+        </div>
+      )}
 
       <div className="grid-2">
         <ChartCard title="每週流量分佈" subtitle="星期一到星期日的工作階段數">

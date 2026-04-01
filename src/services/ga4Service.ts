@@ -105,12 +105,19 @@ export interface HourlyByDateRow {
   label: string;
   hours: number[];  // 長度 24，索引對應 0-23 時
 }
-
 export interface BrowserData {
   name: string;
   users: number;
   sessions: number;
   engagementRate: number;
+}
+
+export interface BotData {
+  name: string;
+  users: number;
+  sessions: number;
+  engagementRate: number;
+  reason: string;
 }
 
 export interface ScreenData {
@@ -622,12 +629,17 @@ export async function getBrowserData({ startDate, endDate, project_id }: DateRan
   return data?.browsers || [];
 }
 
-/**
- * 取得螢幕解析度
- */
 export async function getScreenData({ startDate, endDate, project_id }: DateRangeParams): Promise<ScreenData[]> {
   const data = await fetchReportData('tech', startDate, endDate, project_id);
   return data?.screens || [];
+}
+
+/**
+ * 取得疑似爬蟲資料
+ */
+export async function getBotData({ startDate, endDate, project_id }: DateRangeParams): Promise<BotData[]> {
+  const data = await fetchReportData('tech', startDate, endDate, project_id);
+  return data?.bots || [];
 }
 
 /**

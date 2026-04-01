@@ -668,7 +668,7 @@ class GAService:
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
-            # 瀏覽器分佈
+            # 1. 瀏覽器分佈
             browser_response = self._run_report(
                 dimensions=["browser"],
                 metrics=["totalUsers", "sessions", "engagementRate"],
@@ -687,7 +687,7 @@ class GAService:
                 for row in browser_response.rows
             ]
 
-            # 螢幕解析度分佈
+            # 2. 螢幕解析度分佈
             screen_response = self._run_report(
                 dimensions=["screenResolution"],
                 metrics=["totalUsers"],
@@ -704,9 +704,54 @@ class GAService:
                 for row in screen_response.rows
             ]
 
+            # 3. 疑似爬蟲/機器人流量分析
+            # 查詢 瀏覽器 + 作業系統，用來匹配常見爬蟲特徵
+            bot_response = self._run_report(
+                dimensions=["browser", "operatingSystem"],
+                metrics=["totalUsers", "sessions", "engagementRate"],
+                date_ranges=date_ranges,
+                order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
+                limit=20,
+                property_id=property_id,
+            )
+            
+            # 定義爬蟲特徵關鍵字
+            BOT_KEYWORDS = [
+                "headless", "bot", "crawl", "spider", "python", "http-client", 
+                "java", "postman", "ahrefs", "semrush", "petalbot", "dotbot",
+                "screaming frog", "bingbot", "googlebot", "yandex", "baiduspider"
+            ]
+            
+            bots = []
+            for row in bot_response.rows:
+                browser = row.dimension_values[0].value.lower()
+                os_name = row.dimension_values[1].value.lower()
+                
+                # 識別原因
+                reasons = []
+                if any(kw in browser for kw in BOT_KEYWORDS):
+                    reasons.append("瀏覽器特徵")
+                if any(kw in os_name for kw in BOT_KEYWORDS):
+                    reasons.append("系統特徵")
+                
+                # 如果是 (not set) 且參與率極低也標記為疑似
+                engagement_rate = float(row.metric_values[2].value)
+                if (browser == "(not set)" or os_name == "(not set)") and engagement_rate < 0.05:
+                    reasons.append("匿名來源+極低參與")
+                
+                if reasons:
+                    bots.append({
+                        "name": f"{row.dimension_values[0].value} / {row.dimension_values[1].value}",
+                        "users": int(row.metric_values[0].value),
+                        "sessions": int(row.metric_values[1].value),
+                        "engagementRate": round(engagement_rate * 100, 1),
+                        "reason": " + ".join(reasons)
+                    })
+
             return {
                 "browsers": browsers,
                 "screens": screens,
+                "bots": bots
             }
         except Exception as e:
             logger.error(f"GA4 技術分析報表查詢失敗: {e}")

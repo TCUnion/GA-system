@@ -8,7 +8,7 @@ import PageLoader from '../components/PageLoader';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { getChannelData, getSourceMediumData, getSocialData } from '../services/ga4Service';
+import { getChannelData, getSourceMediumData, getSocialData, getAiTrafficData } from '../services/ga4Service';
 import type { SourceMediumData } from '../services/ga4Service';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
@@ -29,8 +29,9 @@ function AcquisitionPage() {
   const { data: channels, loading: L1 } = useGA4Data(getChannelData, []);
   const { data: sm, loading: L2 } = useGA4Data(getSourceMediumData, []);
   const { data: social, loading: L3 } = useGA4Data(getSocialData, []);
+  const { data: aiTraffic, loading: L4 } = useGA4Data(getAiTrafficData, []);
 
-  const isLoading = L1 || L2 || L3;
+  const isLoading = L1 || L2 || L3 || L4;
 
   // NOTE: 記錄目前選取的管道名稱，用於篩選下方表格
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
@@ -122,6 +123,75 @@ function AcquisitionPage() {
                 <Bar dataKey="sessions" name="工作階段" radius={[0, 6, 6, 0]} barSize={24}>{social.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
               </BarChart>
             </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        {/* --- AI 搜尋/對話流量 (AEO) --- */}
+        <div className="grid-2 mt-6">
+          <ChartCard 
+            title="AI 搜尋 / 對話流量 (AEO)" 
+            subtitle="來自 ChatGPT, Perplexity, Claude 等 AI 平台的訪客點擊"
+          >
+            {aiTraffic.length > 0 ? (
+              <div className="flex flex-col h-full">
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-blue-400/60 uppercase font-bold tracking-wider mb-1">AI 總工作階段</div>
+                    <div className="text-xl font-bold text-blue-100">{aiTraffic.reduce((acc, curr) => acc + curr.sessions, 0).toLocaleString()}</div>
+                  </div>
+                  <div className="bg-purple-500/5 border border-purple-500/10 rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-purple-400/60 uppercase font-bold tracking-wider mb-1">AI 獨立使用者</div>
+                    <div className="text-xl font-bold text-purple-100">{aiTraffic.reduce((acc, curr) => acc + curr.users, 0).toLocaleString()}</div>
+                  </div>
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-emerald-400/60 uppercase font-bold tracking-wider mb-1">平均參與率</div>
+                    <div className="text-xl font-bold text-emerald-100">
+                      {(aiTraffic.reduce((acc, curr) => acc + curr.engagementRate, 0) / aiTraffic.length).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-grow">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={aiTraffic} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="platform" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
+                      <Bar dataKey="sessions" name="工作階段" radius={[0, 4, 4, 0]} barSize={20}>
+                        {aiTraffic.map((_, i) => <Cell key={i} fill={CHART_COLORS[(i + 2) % CHART_COLORS.length]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[260px] text-slate-500 text-sm italic">
+                目前尚無明顯來自 AI 平台的來源數據
+              </div>
+            )}
+          </ChartCard>
+
+          <ChartCard title="AEO 優化建議" subtitle="提升站在 AI 搜尋回答中的被引用率">
+            <div className="space-y-4 text-sm text-slate-300">
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <h4 className="text-blue-400 font-bold mb-1">1. 結構化資料 (Schema.org)</h4>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  確保頁面包含 JSON-LD 格式的結構化標記，幫助 AI 爬蟲更精準地抓取專案細節與數據。
+                </p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <h4 className="text-purple-400 font-bold mb-1">2. 內容摘要與 Q&A</h4>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  在頁面頂部提供簡短的執行摘要，並針對常見問題提供直接的回答，增加被 AI 選為來源的機率。
+                </p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <h4 className="text-emerald-400 font-bold mb-1">3. 定期更新 OpenGraph</h4>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  AI 顯示結果時常會抓取 OG 預覽圖與描述，保持這些資訊與最新數據同步至關重要。
+                </p>
+              </div>
+            </div>
           </ChartCard>
         </div>
 

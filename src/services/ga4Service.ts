@@ -69,6 +69,13 @@ export interface SocialData {
   sessions: number;
 }
 
+export interface AiTrafficData {
+  platform: string;
+  sessions: number;
+  users: number;
+  engagementRate: number;
+}
+
 export interface PageData {
   pageTitle: string;
   pagePath: string;
@@ -543,6 +550,14 @@ export async function getSourceMediumData({ startDate, endDate, project_id }: Da
 export async function getSocialData({ startDate, endDate, project_id }: DateRangeParams): Promise<SocialData[]> {
   const data = await fetchReportData('acquisition', startDate, endDate, project_id);
   return data?.social || [];
+}
+
+/**
+ * 取得 AI 搜尋/對話流量 (AEO)
+ */
+export async function getAiTrafficData({ startDate, endDate, project_id }: DateRangeParams): Promise<AiTrafficData[]> {
+  const data = await fetchReportData('acquisition', startDate, endDate, project_id);
+  return data?.aiTraffic || [];
 }
 
 /**

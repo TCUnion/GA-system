@@ -398,8 +398,7 @@ class GAService:
                     "avgDuration": round(float(row.metric_values[4].value), 0),
                 })
 
-            # 社群平台流量
-            # NOTE: 使用 sessionSource 維度，手動篩選已知社群平台來源
+            # --- ç¤¾ç¾¤å¹³èºè AI æå°/å°è©±æµé (AEO) ---
             social_platforms = {
                 "facebook.com": "Facebook", "l.facebook.com": "Facebook",
                 "m.facebook.com": "Facebook", "fb.com": "Facebook",
@@ -407,27 +406,71 @@ class GAService:
                 "instagram.com": "Instagram", "l.instagram.com": "Instagram",
                 "youtube.com": "YouTube", "m.youtube.com": "YouTube",
                 "twitter.com": "Twitter/X", "t.co": "Twitter/X",
-                "linkedin.com": "LinkedIn",
-                "threads.net": "Threads",
+                "linkedin.com": "LinkedIn", "threads.net": "Threads",
             }
+            ai_platforms = {
+                "chatgpt.com": "ChatGPT", "openai.com": "ChatGPT",
+                "perplexity.ai": "Perplexity", "anthropic.com": "Claude",
+                "claude.ai": "Claude", "gemini.google.com": "Gemini",
+            }
+            
             social_agg: dict[str, int] = {}
+            ai_agg = {}
+
             for row in source_response.rows:
-                source = row.dimension_values[0].value.lower()
-                if source in social_platforms:
-                    platform = social_platforms[source]
-                    social_agg[platform] = social_agg.get(platform, 0) + int(row.metric_values[0].value)
+                # 0: Channel Group, 1: Source
+                channel_raw = row.dimension_values[0].value.lower()
+                source_raw = row.dimension_values[1].value.lower()
+                sessions = int(row.metric_values[0].value)
+                users = int(row.metric_values[1].value)
+                eng_rate = round(float(row.metric_values[3].value) * 100, 1)
+
+                # èçç¤¾ç¾¤æµé
+                if source_raw in social_platforms:
+                    p = social_platforms[source_raw]
+                    social_agg[p] = social_agg.get(p, 0) + sessions
+                elif channel_raw in social_platforms:
+                    p = social_platforms[channel_raw]
+                    social_agg[p] = social_agg.get(p, 0) + sessions
+
+                # èç AI æµé
+                matched_ai = None
+                for key, name in ai_platforms.items():
+                    if key in source_raw:
+                        matched_ai = name
+                        break
+                
+                if matched_ai:
+                    if matched_ai not in ai_agg:
+                        ai_agg[matched_ai] = {"sessions": 0, "users": 0, "engagementRate": 0, "count": 0}
+                    ai_agg[matched_ai]["sessions"] += sessions
+                    ai_agg[matched_ai]["users"] += users
+                    ai_agg[matched_ai]["engagementRate"] += eng_rate
+                    ai_agg[matched_ai]["count"] += 1
 
             social = sorted(
                 [{"platform": k, "sessions": v} for k, v in social_agg.items()],
-                key=lambda x: x["sessions"],
-                reverse=True,
+                key=lambda x: x["sessions"], reverse=True
             )
+
+            # è¨ç® AI åå¹³èºå¹³ååèç
+            ai_traffic = []
+            for platform, stats in ai_agg.items():
+                ai_traffic.append({
+                    "platform": platform,
+                    "sessions": stats["sessions"],
+                    "users": stats["users"],
+                    "engagementRate": round(stats["engagementRate"] / stats["count"], 1) if stats["count"] > 0 else 0
+                })
+            ai_traffic = sorted(ai_traffic, key=lambda x: x["sessions"], reverse=True)
 
             return {
                 "channels": channels,
                 "sourceMedium": source_medium,
                 "social": social,
+                "aiTraffic": ai_traffic,
             }
+
         except Exception as e:
             logger.error(f"GA4 流量來源報表查詢失敗: {e}")
             raise e

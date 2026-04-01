@@ -81,6 +81,7 @@
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .rank-cell.top-3 {

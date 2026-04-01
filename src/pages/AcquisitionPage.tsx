@@ -16,7 +16,7 @@ const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 const smColumns: Column<SourceMediumData>[] = [
-  { key: 'source', label: '來源 / 媒介', render: (_v, row) => (<span><strong>{row.source}</strong><span style={{ color: 'hsl(215, 15%, 45%)', margin: '0 4px' }}>/</span><span style={{ color: 'hsl(215, 20%, 65%)' }}>{row.medium}</span></span>) },
+  { key: 'source', label: '來源 / 媒介', render: (_v, row) => (<div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><strong>{row.source}</strong><span style={{ color: 'hsl(215, 15%, 45%)', margin: '0 4px' }}>/</span><span style={{ color: 'hsl(215, 20%, 65%)' }}>{row.medium}</span></div></div>) },
   { key: 'sessions', label: '工作階段', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
   { key: 'users', label: '使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
   { key: 'newUsers', label: '新使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },

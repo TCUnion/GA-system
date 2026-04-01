@@ -21,7 +21,7 @@ function ContentPage() {
   const maxViews = Math.max(...pages.map((p) => p.views), 1);
 
   const pageColumns: Column<PageData>[] = [
-    { key: 'pageTitle', label: '頁面', render: (_v, row, i) => (<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''}`}>{i + 1}</span><span><div>{row.pageTitle}</div><div style={{ fontSize: '0.7rem', color: 'hsl(215, 15%, 45%)' }}>{row.pagePath}</div></span></span>) },
+    { key: 'pageTitle', label: '頁面', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.pageTitle}</div><div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{row.pagePath}</div></div></div>) },
     { key: 'views', label: '瀏覽量', align: 'right', render: (v) => { const n = v as number; return (<div className="bar-cell"><div className="bar-track"><div className="bar-fill" style={{ width: `${(n / maxViews) * 100}%` }} /></div><span className="bar-value">{n.toLocaleString('zh-TW')}</span></div>); } },
     { key: 'users', label: '使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
     { key: 'avgDuration', label: '平均停留', align: 'right', render: (v) => { const n = v as number; return `${Math.floor(n / 60)}:${(n % 60).toString().padStart(2, '0')}`; } },
@@ -29,7 +29,7 @@ function ContentPage() {
   ];
 
   const landingColumns: Column<PageData>[] = [
-    { key: 'pageTitle', label: '到達頁面', render: (_v, row, i) => (<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''}`}>{i + 1}</span>{row.pageTitle}</span>) },
+    { key: 'pageTitle', label: '到達頁面', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.pageTitle}</div></div>) },
     { key: 'views', label: '工作階段', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
     { key: 'users', label: '使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
     { key: 'bounceRate', label: '跳出率', align: 'right', render: (v) => { const n = v as number; return <span className={n <= 25 ? 'rate-high' : n <= 40 ? 'rate-medium' : 'rate-low'}>{n.toFixed(1)}%</span>; } },

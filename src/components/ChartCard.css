@@ -35,6 +35,7 @@
 .chart-card-body {
   width: 100%;
   min-height: 200px;
+  min-width: 0;
 }
 
 /* --- 圖表內部 Recharts 調整 --- */
@@ -86,4 +87,16 @@
   font-weight: 600;
   margin-left: auto;
   padding-left: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .chart-card {
+    padding: var(--space-md);
+  }
+  .chart-card-header {
+    margin-bottom: var(--space-md);
+  }
+  .chart-card-body {
+    min-height: 250px;
+  }
 }

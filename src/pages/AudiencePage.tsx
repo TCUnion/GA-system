@@ -8,7 +8,6 @@ import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getDeviceData, getOsData, getCityData, getLanguageData } from '../services/ga4Service';
 import type { CityData } from '../services/ga4Service';
-import { deviceData as fb1, osData as fb2, cityData as fb3, languageData as fb4 } from '../data/mockData';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,10 +22,10 @@ const cityColumns: Column<CityData>[] = [
 ];
 
 function AudiencePage() {
-  const { data: devices } = useGA4Data(getDeviceData, fb1);
-  const { data: os } = useGA4Data(getOsData, fb2);
-  const { data: cities } = useGA4Data(getCityData, fb3);
-  const { data: languages } = useGA4Data(getLanguageData, fb4);
+  const { data: devices } = useGA4Data(getDeviceData, []);
+  const { data: os } = useGA4Data(getOsData, []);
+  const { data: cities } = useGA4Data(getCityData, []);
+  const { data: languages } = useGA4Data(getLanguageData, []);
 
   return (
     <div className="page-grid">

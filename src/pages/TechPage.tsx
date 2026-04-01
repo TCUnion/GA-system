@@ -8,7 +8,6 @@ import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getDeviceData, getBrowserData, getScreenData } from '../services/ga4Service';
 import type { BrowserData, ScreenData } from '../services/ga4Service';
-import { deviceData as fb1, browserData as fb2, screenData as fb3 } from '../data/mockData';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,9 +27,9 @@ const screenColumns: Column<ScreenData>[] = [
 ];
 
 function TechPage() {
-  const { data: devices } = useGA4Data(getDeviceData, fb1);
-  const { data: browsers } = useGA4Data(getBrowserData, fb2);
-  const { data: screens } = useGA4Data(getScreenData, fb3);
+  const { data: devices } = useGA4Data(getDeviceData, []);
+  const { data: browsers } = useGA4Data(getBrowserData, []);
+  const { data: screens } = useGA4Data(getScreenData, []);
 
   return (
     <div className="page-grid">

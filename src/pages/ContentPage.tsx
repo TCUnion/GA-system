@@ -8,15 +8,14 @@ import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getPageData, getLandingPageData, getDailyTraffic } from '../services/ga4Service';
 import type { PageData } from '../services/ga4Service';
-import { pageData as fb1, landingPageData as fb2, dailyTrafficData as fb3 } from '../data/mockData';
 
 const CHART_COLORS = ['#3b82f6', '#22c997'];
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function ContentPage() {
-  const { data: pages } = useGA4Data(getPageData, fb1);
-  const { data: landing } = useGA4Data(getLandingPageData, fb2);
-  const { data: traffic } = useGA4Data(getDailyTraffic, fb3);
+  const { data: pages } = useGA4Data(getPageData, []);
+  const { data: landing } = useGA4Data(getLandingPageData, []);
+  const { data: traffic } = useGA4Data(getDailyTraffic, []);
 
   const maxViews = Math.max(...pages.map((p) => p.views), 1);
 
@@ -52,7 +51,7 @@ function ContentPage() {
         <p>了解哪些頁面最受歡迎，以及使用者的瀏覽行為</p>
       </div>
 
-      <ChartCard title="頁面瀏覽趨勢" subtitle="過去 30 天每日瀏覽量與工作階段數">
+      <ChartCard title="頁面瀏覽趨勢" subtitle="所選期間的每日瀏覽量與工作階段數">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={traffic}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />

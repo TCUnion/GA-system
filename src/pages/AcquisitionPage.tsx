@@ -8,7 +8,6 @@ import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getChannelData, getSourceMediumData, getSocialData } from '../services/ga4Service';
 import type { SourceMediumData } from '../services/ga4Service';
-import { channelData as fb1, sourceMediumData as fb2, socialData as fb3 } from '../data/mockData';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,9 +24,9 @@ const smColumns: Column<SourceMediumData>[] = [
 ];
 
 function AcquisitionPage() {
-  const { data: channels } = useGA4Data(getChannelData, fb1);
-  const { data: sm } = useGA4Data(getSourceMediumData, fb2);
-  const { data: social } = useGA4Data(getSocialData, fb3);
+  const { data: channels } = useGA4Data(getChannelData, []);
+  const { data: sm } = useGA4Data(getSourceMediumData, []);
+  const { data: social } = useGA4Data(getSocialData, []);
 
   return (
     <div className="page-grid">

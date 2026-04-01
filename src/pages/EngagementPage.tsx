@@ -9,7 +9,6 @@ import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData } from '../services/ga4Service';
 import type { EventData } from '../services/ga4Service';
-import { eventData as fb1, weekdayData as fb2, hourlyData as fb3, hourlyByDateData as fb4 } from '../data/mockData';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,14 +16,14 @@ const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function EngagementPage() {
-  const { data: events, source: eventsSource } = useGA4Data(getEventData, fb1);
-  const { data: weekday } = useGA4Data(getWeekdayData, fb2);
-  const { data: hourly } = useGA4Data(getHourlyData, fb3);
-  const { data: hourlyByDate } = useGA4Data(getHourlyByDateData, fb4);
+  const { data: events, error: eventsError } = useGA4Data(getEventData, []);
+  const { data: weekday } = useGA4Data(getWeekdayData, []);
+  const { data: hourly } = useGA4Data(getHourlyData, []);
+  const { data: hourlyByDate } = useGA4Data(getHourlyByDateData, []);
 
   // NOTE: 四個圖表共用同一個 engagement API 端點，
-  //       若任一回傳 fallback，通常表示 GA4 Property 存取失敗（如 403）
-  const isFallback = eventsSource === 'fallback';
+  //       若任一回傳 error，通常表示 GA4 Property 存取失敗或尚無資料
+  const hasError = !!eventsError;
 
   const maxEventCount = Math.max(...events.map((e) => e.eventCount), 1);
 
@@ -47,17 +46,17 @@ function EngagementPage() {
         <p>了解使用者的行為模式和互動頻率</p>
       </div>
 
-      {/* NOTE: 當資料來源為 fallback（模擬）時，顯示警示橫幅提醒使用者 */}
-      {isFallback && (
+      {/* NOTE: 當資料載入失敗時，顯示警示橫幅提醒使用者 */}
+      {hasError && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           padding: '10px 16px',
           borderRadius: 10,
-          background: 'rgba(245, 158, 11, 0.1)',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
-          color: 'hsl(38, 92%, 70%)',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          color: 'hsl(0, 84%, 60%)',
           fontSize: '0.82rem',
           marginBottom: 4,
         }}>
@@ -65,8 +64,8 @@ function EngagementPage() {
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span>
-            <strong>目前顯示為模擬資料。</strong>
-            可能原因：尚未取得此專案 GA4 Property 的存取授權（請至 GA4 後台 → 管理員 → Property Access Management，新增服務帳號為「Viewer」），或是目前日期區間尚無資料。
+            <strong>資料載入失敗或目前缺乏資料。</strong>
+            可能原因：尚未取得此專案 GA4 Property 的存取授權（請確認後端憑證），或是目前日期區間尚無活躍資料。
           </span>
         </div>
       )}

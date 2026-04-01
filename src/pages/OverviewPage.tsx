@@ -6,15 +6,8 @@ import {
 import ScoreCard from '../components/ScoreCard';
 import ChartCard from '../components/ChartCard';
 import { useGA4Data } from '../hooks/useGA4Data';
-import {
-  getOverviewKpi, getDailyTraffic, getChannelData, getDeviceData,
-} from '../services/ga4Service';
-import {
-  kpiData as fallbackKpi,
-  dailyTrafficData as fallbackTraffic,
-  channelData as fallbackChannel,
-  deviceData as fallbackDevice,
-} from '../data/mockData';
+import { getOverviewKpi, getDailyTraffic, getChannelData, getDeviceData } from '../services/ga4Service';
+import type { KpiData } from '../services/ga4Service';
 
 /**
  * 總覽頁面
@@ -68,7 +61,7 @@ const KPI_ICONS: Record<string, React.ReactNode> = {
 };
 
 interface KpiCardRowProps {
-  data: typeof fallbackKpi;
+  data: KpiData[];
 }
 
 const KpiCardRow = ({ data }: KpiCardRowProps) => {
@@ -89,10 +82,10 @@ const KpiCardRow = ({ data }: KpiCardRowProps) => {
 };
 
 function OverviewPage() {
-  const { data: kpi, loading: kpiLoading } = useGA4Data(getOverviewKpi, fallbackKpi);
-  const { data: traffic } = useGA4Data(getDailyTraffic, fallbackTraffic);
-  const { data: channels } = useGA4Data(getChannelData, fallbackChannel);
-  const { data: devices } = useGA4Data(getDeviceData, fallbackDevice);
+  const { data: kpi, loading: kpiLoading } = useGA4Data<KpiData[]>(getOverviewKpi, []);
+  const { data: traffic } = useGA4Data(getDailyTraffic, []);
+  const { data: channels } = useGA4Data(getChannelData, []);
+  const { data: devices } = useGA4Data(getDeviceData, []);
 
   return (
     <div className="page-grid">

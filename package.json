@@ -1,7 +1,7 @@
 {
   "name": "nanzhuang-dashboard",
   "private": true,
-  "version": "0.0.16",
+  "version": "0.0.17",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
@@ -17,8 +17,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",
     "d3-scale": "^4.0.2",
+    "prop-types": "^15.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-is": "^19.2.4",
     "react-router-dom": "^7.13.2",
     "react-simple-maps": "^3.0.0",
     "recharts": "^3.8.1"

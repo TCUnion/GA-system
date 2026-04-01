@@ -87,8 +87,10 @@ function AudiencePage() {
 
       <div className="grid-2 mt-8">
         <TaiwanMap data={countyData} />
-        <ChartCard title="Top 10 城市" subtitle="使用者數量最多的城市排行">
-          <DataTable columns={cityColumns} data={cities} />
+        <ChartCard title="城市分佈" subtitle="所有城市的使用者排行數據">
+          <div style={{ maxHeight: '600px', overflowY: 'auto', paddingRight: '8px' }}>
+            <DataTable columns={cityColumns} data={cities} />
+          </div>
         </ChartCard>
       </div>
     </div>

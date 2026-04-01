@@ -301,7 +301,7 @@ class GAService:
                 metrics=["totalUsers", "sessions", "engagementRate"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
-                limit=10,
+                limit=250,
                 property_id=property_id,
             )
             cities = []

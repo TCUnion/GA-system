@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useConnection } from '../contexts/ConnectionContext';
+import { useAuth } from '../contexts/AuthContext';
 import DateRangePicker from './DateRangePicker';
 import './Layout.css';
 
@@ -92,6 +93,7 @@ function formatLastUpdated(isoString: string | null): string {
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { status, lastUpdatedAt, dateRange, setDateRange } = useConnection();
+  const { user, signOut } = useAuth();
 
   // 連線狀態文字與樣式映射
   const statusConfig = {
@@ -158,6 +160,36 @@ function Layout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* 側邊欄底部：使用者資訊與登出 */}
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            {/* NOTE: 使用者頭像使用首字母縮寫取代頭像圖片 */}
+            <div className="sidebar-user-avatar" aria-hidden="true">
+              {user?.email?.[0]?.toUpperCase() ?? 'U'}
+            </div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-email" title={user?.email}>
+                {user?.email ?? '未知使用者'}
+              </span>
+              <span className="sidebar-user-role">管理員</span>
+            </div>
+          </div>
+          <button
+            id="sidebar-logout-btn"
+            className="btn-logout"
+            onClick={() => signOut()}
+            aria-label="登出帳號"
+            title="登出"
+          >
+            {/* 登出圖示 */}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </aside>
 
       {/* 主內容區 */}

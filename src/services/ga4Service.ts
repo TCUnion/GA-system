@@ -117,6 +117,7 @@ export interface LanguageData {
 export interface DateRangeParams {
   startDate: string;
   endDate: string;
+  project_id?: string;
 }
 
 // --- 快取容器（避免重複查詢） ---
@@ -131,7 +132,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
  * 從後端 API 讀取指定報表的 JSON 資料（支援動態日期），並做前端記憶體快取
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchReportData(reportType: string, startDate: string, endDate: string): Promise<any | null> {
+async function fetchReportData(reportType: string, startDate: string, endDate: string, project_id?: string): Promise<any | null> {
   const cacheKey = `${reportType}_${startDate}_${endDate}`;
   const cached = cache[cacheKey];
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -146,7 +147,13 @@ async function fetchReportData(reportType: string, startDate: string, endDate: s
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/reports/${reportType}?start_date=${startDate}&end_date=${endDate}`);
+    const url = new URL(`${API_BASE_URL}/api/reports/${reportType}`);
+    url.searchParams.append('start_date', startDate);
+    url.searchParams.append('end_date', endDate);
+    if (project_id) {
+      url.searchParams.append('project_id', project_id);
+    }
+    const response = await fetch(url.toString());
     if (!response.ok) {
       throw new Error(`API 回傳錯誤: ${response.status} ${response.statusText}`);
     }
@@ -168,8 +175,8 @@ async function fetchReportData(reportType: string, startDate: string, endDate: s
 /**
  * 取得總覽頁面的 KPI 資料
  */
-export async function getOverviewKpi({ startDate, endDate }: DateRangeParams): Promise<KpiData[]> {
-  const data = await fetchReportData('overview', startDate, endDate);
+export async function getOverviewKpi({ startDate, endDate, project_id }: DateRangeParams): Promise<KpiData[]> {
+  const data = await fetchReportData('overview', startDate, endDate, project_id);
   if (!data) return [];
 
   const { kpi, previousKpi } = data;
@@ -186,128 +193,128 @@ export async function getOverviewKpi({ startDate, endDate }: DateRangeParams): P
 /**
  * 取得每日流量趨勢
  */
-export async function getDailyTraffic({ startDate, endDate }: DateRangeParams): Promise<DailyTraffic[]> {
-  const data = await fetchReportData('traffic', startDate, endDate);
+export async function getDailyTraffic({ startDate, endDate, project_id }: DateRangeParams): Promise<DailyTraffic[]> {
+  const data = await fetchReportData('traffic', startDate, endDate, project_id);
   return data?.dailyTraffic || [];
 }
 
 /**
  * 取得流量管道資料
  */
-export async function getChannelData({ startDate, endDate }: DateRangeParams): Promise<ChannelData[]> {
-  const data = await fetchReportData('acquisition', startDate, endDate);
+export async function getChannelData({ startDate, endDate, project_id }: DateRangeParams): Promise<ChannelData[]> {
+  const data = await fetchReportData('acquisition', startDate, endDate, project_id);
   return data?.channels || [];
 }
 
 /**
  * 取得裝置分佈
  */
-export async function getDeviceData({ startDate, endDate }: DateRangeParams): Promise<DeviceData[]> {
-  const data = await fetchReportData('audience', startDate, endDate);
+export async function getDeviceData({ startDate, endDate, project_id }: DateRangeParams): Promise<DeviceData[]> {
+  const data = await fetchReportData('audience', startDate, endDate, project_id);
   return data?.devices || [];
 }
 
 /**
  * 取得 OS 分佈
  */
-export async function getOsData({ startDate, endDate }: DateRangeParams): Promise<OsData[]> {
-  const data = await fetchReportData('audience', startDate, endDate);
+export async function getOsData({ startDate, endDate, project_id }: DateRangeParams): Promise<OsData[]> {
+  const data = await fetchReportData('audience', startDate, endDate, project_id);
   return data?.os || [];
 }
 
 /**
  * 取得語言分佈
  */
-export async function getLanguageData({ startDate, endDate }: DateRangeParams): Promise<LanguageData[]> {
-  const data = await fetchReportData('audience', startDate, endDate);
+export async function getLanguageData({ startDate, endDate, project_id }: DateRangeParams): Promise<LanguageData[]> {
+  const data = await fetchReportData('audience', startDate, endDate, project_id);
   return data?.languages || [];
 }
 
 /**
  * 取得城市排行
  */
-export async function getCityData({ startDate, endDate }: DateRangeParams): Promise<CityData[]> {
-  const data = await fetchReportData('audience', startDate, endDate);
+export async function getCityData({ startDate, endDate, project_id }: DateRangeParams): Promise<CityData[]> {
+  const data = await fetchReportData('audience', startDate, endDate, project_id);
   return data?.cities || [];
 }
 
 /**
  * 取得來源/媒介資料
  */
-export async function getSourceMediumData({ startDate, endDate }: DateRangeParams): Promise<SourceMediumData[]> {
-  const data = await fetchReportData('acquisition', startDate, endDate);
+export async function getSourceMediumData({ startDate, endDate, project_id }: DateRangeParams): Promise<SourceMediumData[]> {
+  const data = await fetchReportData('acquisition', startDate, endDate, project_id);
   return data?.sourceMedium || [];
 }
 
 /**
  * 取得社群流量
  */
-export async function getSocialData({ startDate, endDate }: DateRangeParams): Promise<SocialData[]> {
-  const data = await fetchReportData('acquisition', startDate, endDate);
+export async function getSocialData({ startDate, endDate, project_id }: DateRangeParams): Promise<SocialData[]> {
+  const data = await fetchReportData('acquisition', startDate, endDate, project_id);
   return data?.social || [];
 }
 
 /**
  * 取得頁面資料
  */
-export async function getPageData({ startDate, endDate }: DateRangeParams): Promise<PageData[]> {
-  const data = await fetchReportData('content', startDate, endDate);
+export async function getPageData({ startDate, endDate, project_id }: DateRangeParams): Promise<PageData[]> {
+  const data = await fetchReportData('content', startDate, endDate, project_id);
   return data?.pages || [];
 }
 
 /**
  * 取得到達頁面
  */
-export async function getLandingPageData({ startDate, endDate }: DateRangeParams): Promise<PageData[]> {
-  const data = await fetchReportData('content', startDate, endDate);
+export async function getLandingPageData({ startDate, endDate, project_id }: DateRangeParams): Promise<PageData[]> {
+  const data = await fetchReportData('content', startDate, endDate, project_id);
   return data?.landingPages || [];
 }
 
 /**
  * 取得事件資料
  */
-export async function getEventData({ startDate, endDate }: DateRangeParams): Promise<EventData[]> {
-  const data = await fetchReportData('engagement', startDate, endDate);
+export async function getEventData({ startDate, endDate, project_id }: DateRangeParams): Promise<EventData[]> {
+  const data = await fetchReportData('engagement', startDate, endDate, project_id);
   return data?.events || [];
 }
 
 /**
  * 取得每週分佈
  */
-export async function getWeekdayData({ startDate, endDate }: DateRangeParams): Promise<WeekdayData[]> {
-  const data = await fetchReportData('engagement', startDate, endDate);
+export async function getWeekdayData({ startDate, endDate, project_id }: DateRangeParams): Promise<WeekdayData[]> {
+  const data = await fetchReportData('engagement', startDate, endDate, project_id);
   return data?.weekday || [];
 }
 
 /**
  * 取得每小時分佈
  */
-export async function getHourlyData({ startDate, endDate }: DateRangeParams): Promise<HourlyData[]> {
-  const data = await fetchReportData('engagement', startDate, endDate);
+export async function getHourlyData({ startDate, endDate, project_id }: DateRangeParams): Promise<HourlyData[]> {
+  const data = await fetchReportData('engagement', startDate, endDate, project_id);
   return data?.hourly || [];
 }
 
 /**
  * 取得每日 × 每小時熱力圖資料
  */
-export async function getHourlyByDateData({ startDate, endDate }: DateRangeParams): Promise<HourlyByDateRow[]> {
-  const data = await fetchReportData('engagement', startDate, endDate);
+export async function getHourlyByDateData({ startDate, endDate, project_id }: DateRangeParams): Promise<HourlyByDateRow[]> {
+  const data = await fetchReportData('engagement', startDate, endDate, project_id);
   return data?.hourlyByDate || [];
 }
 
 /**
  * 取得瀏覽器資料
  */
-export async function getBrowserData({ startDate, endDate }: DateRangeParams): Promise<BrowserData[]> {
-  const data = await fetchReportData('tech', startDate, endDate);
+export async function getBrowserData({ startDate, endDate, project_id }: DateRangeParams): Promise<BrowserData[]> {
+  const data = await fetchReportData('tech', startDate, endDate, project_id);
   return data?.browsers || [];
 }
 
 /**
  * 取得螢幕解析度
  */
-export async function getScreenData({ startDate, endDate }: DateRangeParams): Promise<ScreenData[]> {
-  const data = await fetchReportData('tech', startDate, endDate);
+export async function getScreenData({ startDate, endDate, project_id }: DateRangeParams): Promise<ScreenData[]> {
+  const data = await fetchReportData('tech', startDate, endDate, project_id);
   return data?.screens || [];
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
+import { useProject } from '../contexts/ProjectContext';
 import type { DateRangeParams } from '../services/ga4Service';
 
 /**
@@ -34,14 +35,15 @@ export function useGA4Data<T>(
 
   // 直接從 Context 讀取，不透過 props 傳入，確保永遠是最新值
   const { refreshKey, dateRange } = useConnection();
+  const { currentProject } = useProject();
   const { startDate, endDate } = dateRange;
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // NOTE: 每次呼叫都使用當下 startDate/endDate（閉包已捕捉最新值）
-      const result = await fetchFn({ startDate, endDate });
+      // NOTE: 每次呼叫都使用當下 startDate/endDate/project_id
+      const result = await fetchFn({ startDate, endDate, project_id: currentProject?.id });
       if (result && (Array.isArray(result) ? result.length > 0 : true)) {
         setData(result);
         setSource('api');
@@ -58,7 +60,7 @@ export function useGA4Data<T>(
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchFn, startDate, endDate, refreshKey]);
+  }, [fetchFn, startDate, endDate, refreshKey, currentProject?.id]);
 
   useEffect(() => {
     loadData();

@@ -83,4 +83,19 @@ class SupabaseService:
             logger.error(f"Supabase 讀取快取失敗 ({report_type}): {e}")
             return None
 
+    def get_ga_property_id(self, project_id: str) -> str | None:
+        """
+        透過 project_id 查詢 projects 表，取得對應的 ga_property_id
+        """
+        if not project_id:
+            return None
+        try:
+            res = self.client.table("projects").select("ga_property_id").eq("id", project_id).execute()
+            if res.data and len(res.data) > 0:
+                return res.data[0].get("ga_property_id")
+            return None
+        except Exception as e:
+            logger.error(f"查詢專案 {project_id} 失敗: {e}")
+            return None
+
 supabase_service = SupabaseService()

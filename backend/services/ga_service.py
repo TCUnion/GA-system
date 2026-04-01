@@ -116,7 +116,8 @@ class GAService:
     def _run_report(self, dimensions: list[str], metrics: list[str],
                     date_ranges: list[DateRange] | None = None,
                     order_bys: list[OrderBy] | None = None,
-                    limit: int = 0):
+                    limit: int = 0,
+                    property_id: str | None = None):
         """
         共用的 GA4 報表查詢方法，簡化各報表的重複程式碼。
 
@@ -126,9 +127,14 @@ class GAService:
             date_ranges: 日期範圍（預設為近 30 天）
             order_bys: 排序規則
             limit: 回傳行數上限，0 表示不限制
+            property_id: 指定 GA4 Property ID，如未指定則使用預設值
         """
+        actual_property_id = property_id if property_id else self.property_id
+        if not actual_property_id:
+            raise ValueError("未指定 GA_PROPERTY_ID")
+            
         request = RunReportRequest(
-            property=f"properties/{self.property_id}",
+            property=f"properties/{actual_property_id}",
             dimensions=[Dimension(name=d) for d in dimensions],
             metrics=[Metric(name=m) for m in metrics],
             date_ranges=date_ranges or [DEFAULT_DATE_RANGE],
@@ -139,7 +145,7 @@ class GAService:
 
     # ----- 1. Overview 總覽報表 -----
 
-    def get_overview_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def get_overview_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得 GA4 總覽報表資料 (前 30 天) 與前一週期的比較。
 
@@ -152,8 +158,12 @@ class GAService:
         current_range = DateRange(start_date=start_date, end_date=end_date)
         compare_range = self._get_compare_date_range(start_date, end_date)
 
+        actual_property_id = property_id if property_id else self.property_id
+        if not actual_property_id:
+            raise ValueError("未指定 GA_PROPERTY_ID")
+
         request = RunReportRequest(
-            property=f"properties/{self.property_id}",
+            property=f"properties/{actual_property_id}",
             metrics=[
                 Metric(name="totalUsers"),
                 Metric(name="newUsers"),
@@ -190,7 +200,7 @@ class GAService:
             logger.error(f"GA4 總覽報表查詢發生錯誤: {e}")
             raise e
 
-    def fetch_daily_traffic(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def fetch_daily_traffic(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得每日流量趨勢
         Returns: { "dailyTraffic": [ ... ] }
@@ -204,6 +214,7 @@ class GAService:
                 metrics=["totalUsers", "newUsers", "sessions", "screenPageViews"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(dimension=OrderBy.DimensionOrderBy(dimension_name="date"), desc=False)],
+                property_id=property_id,
             )
             daily_traffic = []
             for row in response.rows:
@@ -227,7 +238,7 @@ class GAService:
 
     # ----- 2. Audience 使用者分析報表 -----
 
-    def fetch_audience_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def fetch_audience_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得使用者分析報表，包含裝置、語言、OS、城市分佈。
 
@@ -244,6 +255,7 @@ class GAService:
                 dimensions=["deviceCategory"],
                 metrics=["totalUsers"],
                 date_ranges=date_ranges,
+                property_id=property_id,
             )
             devices = []
             # NOTE: GA4 回傳英文 device category，需轉換為前端顯示的中文
@@ -262,6 +274,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
+                property_id=property_id,
             )
             os_data = [
                 {"name": row.dimension_values[0].value, "users": int(row.metric_values[0].value)}
@@ -275,6 +288,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
+                property_id=property_id,
             )
             languages = [
                 {"language": row.dimension_values[0].value, "users": int(row.metric_values[0].value)}
@@ -288,6 +302,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
+                property_id=property_id,
             )
             cities = []
             for row in city_response.rows:
@@ -314,7 +329,7 @@ class GAService:
 
     # ----- 3. Acquisition 流量來源報表 -----
 
-    def fetch_acquisition_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def fetch_acquisition_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得流量來源報表，包含管道、來源/媒介、社群平台。
 
@@ -332,6 +347,7 @@ class GAService:
                 metrics=["sessions"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
+                property_id=property_id,
             )
             channels = [
                 {"name": row.dimension_values[0].value, "sessions": int(row.metric_values[0].value)}
@@ -345,6 +361,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
                 limit=20,
+                property_id=property_id,
             )
             source_medium = []
             for row in source_response.rows:
@@ -394,7 +411,7 @@ class GAService:
 
     # ----- 4. Content 內容分析報表 -----
 
-    def fetch_content_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def fetch_content_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得內容分析報表，包含頁面排行與到達頁面。
 
@@ -413,6 +430,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="screenPageViews"), desc=True)],
                 limit=20,
+                property_id=property_id,
             )
             pages = []
             for row in page_response.rows:
@@ -432,6 +450,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
                 limit=10,
+                property_id=property_id,
             )
             landing_pages = []
             for row in landing_response.rows:
@@ -455,7 +474,7 @@ class GAService:
 
     # ----- 5. Engagement 參與分析報表 -----
 
-    def fetch_engagement_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def fetch_engagement_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得參與分析報表，包含事件明細、每週與每小時分佈。
 
@@ -474,6 +493,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="eventCount"), desc=True)],
                 limit=20,
+                property_id=property_id,
             )
             events = [
                 {
@@ -489,6 +509,7 @@ class GAService:
                 dimensions=["dayOfWeek"],
                 metrics=["sessions"],
                 date_ranges=date_ranges,
+                property_id=property_id,
             )
             # NOTE: GA4 的 dayOfWeek 回傳 "0"=週日 ~ "6"=週六，需轉換為中文
             weekday_map = {"0": "週日", "1": "週一", "2": "週二", "3": "週三",
@@ -508,6 +529,7 @@ class GAService:
                 dimensions=["hour"],
                 metrics=["sessions"],
                 date_ranges=date_ranges,
+                property_id=property_id,
             )
             hourly_raw = {
                 row.dimension_values[0].value: int(row.metric_values[0].value)
@@ -524,6 +546,7 @@ class GAService:
                 metrics=["sessions"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(dimension=OrderBy.DimensionOrderBy(dimension_name="date"), desc=False)],
+                property_id=property_id,
             )
             # 聚合為 { date: { hour: sessions } }
             hourly_by_date_raw: dict[str, dict[str, int]] = {}
@@ -556,7 +579,7 @@ class GAService:
 
     # ----- 6. Tech 技術分析報表 -----
 
-    def fetch_tech_report(self, start_date: str = "30daysAgo", end_date: str = "today") -> dict:
+    def fetch_tech_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
         取得技術分析報表，包含瀏覽器與螢幕解析度。
 
@@ -575,6 +598,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
+                property_id=property_id,
             )
             browsers = [
                 {
@@ -593,6 +617,7 @@ class GAService:
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
                 limit=10,
+                property_id=property_id,
             )
             screens = [
                 {

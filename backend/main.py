@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.sync import router as sync_router
 from api.reports import router as reports_router
+from api.admin import router as admin_router
 from core.scheduler import start_scheduler, stop_scheduler
 
 
@@ -44,6 +45,7 @@ app.add_middleware(
 # 註冊路由器
 app.include_router(sync_router, prefix="/api", tags=["同步服務"])
 app.include_router(reports_router, prefix="/api", tags=["自訂報表"])
+app.include_router(admin_router, prefix="/api", tags=["管理員"])
 
 
 @app.get("/")

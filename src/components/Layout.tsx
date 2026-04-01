@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useConnection } from '../contexts/ConnectionContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useProject } from '../contexts/ProjectContext';
 import DateRangePicker from './DateRangePicker';
 import './Layout.css';
 
@@ -92,8 +93,11 @@ function formatLastUpdated(isoString: string | null): string {
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const { status, lastUpdatedAt, dateRange, setDateRange } = useConnection();
   const { user, signOut } = useAuth();
+  const { projects, currentProject, role, switchProject } = useProject();
+  const navigate = useNavigate();
 
   // 連線狀態文字與樣式映射
   const statusConfig = {
@@ -108,6 +112,7 @@ function Layout() {
     <div className="layout">
       {/* 側邊欄 */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        {/* 品牌標題列 */}
         <div className="sidebar-header">
           <div className="sidebar-brand">
             {/* NOTE: 品牌 Logo 使用 SVG 山形圖示，取代跨平台渲染不一致的 🏔️ emoji */}
@@ -122,27 +127,76 @@ function Layout() {
               <span>Analytics Dashboard</span>
             </div>
           </div>
-
-          {/* 新增：將原本在 footer 的狀態移到此處形成資訊卡片 */}
-          <div className="sidebar-data-status">
-            <div className="data-status-header">資料連線狀態</div>
-            <div className={`sidebar-status ${currentStatus.className}`}>
-              <span className="status-dot" />
-              <span>{currentStatus.label}</span>
-            </div>
-            {status === 'connected' && lastUpdatedAt && (
-              <div className="sidebar-update-time">
-                {/* NOTE: 使用 SVG 時鐘圖示取代 🕐 emoji */}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                {formatLastUpdated(lastUpdatedAt)}
-              </div>
-            )}
-          </div>
         </div>
 
+        {/* 專案選擇器（多專案切換） */}
+        <div className="project-selector">
+          <button
+            id="project-selector-btn"
+            className="project-selector-btn"
+            onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
+            aria-expanded={projectDropdownOpen}
+          >
+            <div
+              className="project-dot"
+              style={{ background: currentProject?.color || '#3b82f6' }}
+            />
+            <div className="project-selector-text">
+              <span className="project-selector-name">
+                {currentProject?.name || '選擇專案'}
+              </span>
+              <span className="project-selector-id">
+                {currentProject?.ga_property_id || ''}
+              </span>
+            </div>
+            <svg className="project-selector-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {projectDropdownOpen && (
+            <div className="project-dropdown">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  className={`project-dropdown-item ${currentProject?.id === project.id ? 'active' : ''}`}
+                  onClick={() => {
+                    switchProject(project);
+                    setProjectDropdownOpen(false);
+                    setSidebarOpen(false);
+                  }}
+                >
+                  <div className="project-dot" style={{ background: project.color || '#3b82f6' }} />
+                  <div>
+                    <div className="project-dropdown-name">{project.name}</div>
+                    <div className="project-dropdown-id">{project.ga_property_id}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 連線狀態 */}
+        <div className="sidebar-data-status">
+          <div className="data-status-header">資料連線狀態</div>
+          <div className={`sidebar-status ${currentStatus.className}`}>
+            <span className="status-dot" />
+            <span>{currentStatus.label}</span>
+          </div>
+          {status === 'connected' && lastUpdatedAt && (
+            <div className="sidebar-update-time">
+              {/* NOTE: 使用 SVG 時鐘圖示取代 🕐 emoji */}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              {formatLastUpdated(lastUpdatedAt)}
+            </div>
+          )}
+        </div>
+
+        {/* 主導覽 */}
         <nav className="sidebar-nav">
           <div className="sidebar-section-label">報表</div>
           {navItems.map((item) => (
@@ -159,6 +213,26 @@ function Layout() {
               {item.label}
             </NavLink>
           ))}
+
+          {/* 管理員才顯示的管理選單 */}
+          {role === 'admin' && (
+            <>
+              <div className="sidebar-section-label sidebar-section-label--admin">系統管理</div>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className="nav-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+                    <line x1="19" y1="8" x2="22" y2="8" /><line x1="22" y1="5" x2="22" y2="11" />
+                  </svg>
+                </span>
+                管理後台
+              </NavLink>
+            </>
+          )}
         </nav>
 
         {/* 側邊欄底部：使用者資訊與登出 */}
@@ -172,23 +246,39 @@ function Layout() {
               <span className="sidebar-user-email" title={user?.email}>
                 {user?.email ?? '未知使用者'}
               </span>
-              <span className="sidebar-user-role">管理員</span>
+              <span className={`sidebar-user-role role-${role}`}>
+                {role === 'admin' ? '管理員' : '一般使用者'}
+              </span>
             </div>
           </div>
-          <button
-            id="sidebar-logout-btn"
-            className="btn-logout"
-            onClick={() => signOut()}
-            aria-label="登出帳號"
-            title="登出"
-          >
-            {/* 登出圖示 */}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
+          <div className="sidebar-footer-actions">
+            {role === 'admin' && (
+              <button
+                id="admin-shortcut-btn"
+                className="btn-admin-shortcut"
+                onClick={() => { navigate('/admin'); setSidebarOpen(false); }}
+                title="管理後台"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+                </svg>
+              </button>
+            )}
+            <button
+              id="sidebar-logout-btn"
+              className="btn-logout"
+              onClick={() => signOut()}
+              aria-label="登出帳號"
+              title="登出"
+            >
+              {/* 登出圖示 */}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
         </div>
       </aside>
 

@@ -252,6 +252,7 @@ const CITY_NAME_MAP: Record<string, string> = {
   'Changhua City': '彰化市',
   // 雙北行政區
   "Da'an District": '大安區',
+  "Da’an District": '大安區',
   'Xinyi District': '信義區',
   'Zhongshan District': '中山區',
   'Songshan District': '松山區',

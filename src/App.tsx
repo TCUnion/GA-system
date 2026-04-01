@@ -12,6 +12,7 @@ import ContentPage from './pages/ContentPage';
 import EngagementPage from './pages/EngagementPage';
 import TechPage from './pages/TechPage';
 import AdminPage from './pages/AdminPage';
+import HeatmapPage from './pages/HeatmapPage';
 
 /**
  * App 元件
@@ -47,6 +48,7 @@ function App() {
               <Route path="/acquisition" element={<AcquisitionPage />} />
               <Route path="/content" element={<ContentPage />} />
               <Route path="/engagement" element={<EngagementPage />} />
+              <Route path="/heatmap" element={<HeatmapPage />} />
               <Route path="/tech" element={<TechPage />} />
               <Route path="/admin" element={<AdminPage />} />
             </Route>

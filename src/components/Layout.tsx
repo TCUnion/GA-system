@@ -55,6 +55,13 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
       <line x1="12" y1="18" x2="12.01" y2="18" />
     </svg>
   ),
+  heatmap: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12A10 10 0 1 0 12 22a10 10 0 0 0 10-10z" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+      <circle cx="12" cy="12" r="6" strokeDasharray="2 2" />
+    </svg>
+  ),
 };
 
 interface NavItem {
@@ -69,6 +76,7 @@ const navItems: NavItem[] = [
   { path: '/acquisition', iconKey: 'acquisition', label: '流量來源' },
   { path: '/content', iconKey: 'content', label: '內容分析' },
   { path: '/engagement', iconKey: 'engagement', label: '參與分析' },
+  { path: '/heatmap', iconKey: 'heatmap', label: '網頁熱點圖' },
   { path: '/tech', iconKey: 'tech', label: '技術分析' },
 ];
 

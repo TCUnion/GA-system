@@ -1,0 +1,71 @@
+.website-heatmap-container {
+  width: 100%;
+  height: 800px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: #f1f5f9; /* 稍微灰底襯托截圖 */
+  overflow: hidden;
+  position: relative;
+}
+
+.heatmap-scroll-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 使得滾動更加滑順 */
+  scroll-behavior: smooth;
+}
+
+.heatmap-image-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  /* 限制最大寬度為 900px，確保隨之等比放大的高度不會超過瀏覽器 GPU 渲染極限 (約 16384px)，避免圖片被強制截斷白邊 */
+  max-width: 900px; 
+  background: #fff;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.heatmap-images-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.heatmap-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.heatmap-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%; /* 撐滿 wrapper */
+  pointer-events: none; /* 讓使用者的滑鼠點擊可以直接穿透至底層 */
+  z-index: 10;
+  
+  /* 疊加上一層非常淡的暗色遮罩，可以讓發光熱點更明顯 */
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.heatmap-spot {
+  position: absolute;
+  border-radius: 50%;
+  /* 置中定位 */
+  transform: translate(-50%, -50%);
+  /* 加上模糊濾鏡消除漸近邊界，產生融合柔和感 */
+  filter: blur(8px);
+  mix-blend-mode: normal;
+  /* 微微呼吸動畫讓畫面有動態資料感 */
+  animation: pulseHeat 3s infinite alternate ease-in-out;
+}
+
+@keyframes pulseHeat {
+  0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.85; }
+  100% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+}

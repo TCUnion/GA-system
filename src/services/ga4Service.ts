@@ -133,7 +133,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchReportData(reportType: string, startDate: string, endDate: string, project_id?: string): Promise<any | null> {
-  const cacheKey = `${reportType}_${startDate}_${endDate}`;
+  const cacheKey = `${reportType}_${startDate}_${endDate}_${project_id || 'default'}`;
   const cached = cache[cacheKey];
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;

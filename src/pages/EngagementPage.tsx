@@ -1,6 +1,6 @@
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, AreaChart, Area,
+  ResponsiveContainer, AreaChart, Area, Legend,
 } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
@@ -120,15 +120,38 @@ function EngagementPage() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="每小時流量模式" subtitle="24 小時的工作階段總覽">
+        <ChartCard title="每小時流量模式" subtitle="最近 3 日的 24 小時流量對比">
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={hourly}>
-              <defs><linearGradient id="hourGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a855f7" stopOpacity={0.3} /><stop offset="100%" stopColor="#a855f7" stopOpacity={0.02} /></linearGradient></defs>
+              <defs>
+                {CHART_COLORS.map((color, i) => (
+                  <linearGradient key={`grad-${i}`} id={`hourGradient-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0.01} />
+                  </linearGradient>
+                ))}
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="hour" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 10 }} axisLine={false} tickLine={false} interval={2} />
               <YAxis tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
-              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ stroke: '#a855f7', strokeWidth: 1 }} />
-              <Area type="monotone" dataKey="sessions" name="工作階段" stroke="#a855f7" strokeWidth={2} fill="url(#hourGradient)" />
+              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1 }} />
+              <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12, color: 'hsl(215, 20%, 65%)' }} />
+              
+              {/* 動態渲染日期折線 */}
+              {Object.keys(hourly[0] || {})
+                .filter(key => key !== 'hour')
+                .map((dateKey, index) => (
+                  <Area
+                    key={dateKey}
+                    type="monotone"
+                    dataKey={dateKey}
+                    name={dateKey}
+                    stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                    strokeWidth={2}
+                    fill={`url(#hourGradient-${index % CHART_COLORS.length})`}
+                    activeDot={{ r: 4, strokeWidth: 0 }}
+                  />
+                ))}
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>

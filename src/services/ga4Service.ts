@@ -97,7 +97,7 @@ export interface WeekdayData {
 
 export interface HourlyData {
   hour: string;
-  sessions: number;
+  [date: string]: string | number; // 支援動態日期欄位，如 "03/31": 150
 }
 
 export interface HourlyByDateRow {

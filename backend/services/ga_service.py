@@ -557,26 +557,39 @@ class GAService:
         except Exception as e:
             logger.warning(f"GA4 每週流量查詢失敗（跳過）: {e}")
 
-        # --- 每小時流量分佈（總覽） ---
+        # --- 每小時流量分佈（改為多日對比） ---
         hourly = []
         try:
             hourly_response = self._run_report(
-                dimensions=["hour"],
+                dimensions=["date", "hour"],
                 metrics=["sessions"],
                 date_ranges=date_ranges,
+                order_bys=[OrderBy(dimension=OrderBy.DimensionOrderBy(dimension_name="date"), desc=True)],
                 property_id=property_id,
             )
-            hourly_raw = {
-                row.dimension_values[0].value: int(row.metric_values[0].value)
-                for row in hourly_response.rows
-            }
-            # NOTE: 加上 ":00" 後綴以對齊前端 HourlyData.hour 型別定義（格式 "HH:00"）
-            hourly = [
-                {"hour": f"{h:02d}:00", "sessions": hourly_raw.get(f"{h:02d}", 0)}
-                for h in range(24)
-            ]
+            # 聚合為 { hour: { date: sessions } }
+            hourly_data_map: dict[str, dict[str, int]] = {f"{h:02d}:00": {} for h in range(24)}
+            
+            # 找出最近的 3 個日期
+            available_dates = sorted(list(set(row.dimension_values[0].value for row in hourly_response.rows)), reverse=True)[:3]
+            
+            for row in hourly_response.rows:
+                d = row.dimension_values[0].value
+                if d not in available_dates:
+                    continue
+                # 格式化日期為 MM/DD
+                d_label = f"{d[4:6]}/{d[6:8]}"
+                h = f"{int(row.dimension_values[1].value):02d}:00"
+                s = int(row.metric_values[0].value)
+                hourly_data_map[h][d_label] = s
+            
+            # 轉換為前端所需的結構：[ { hour: "00:00", "03/31": 10, "04/01": 20 }, ... ]
+            for h in sorted(hourly_data_map.keys()):
+                row_data = {"hour": h}
+                row_data.update(hourly_data_map[h])
+                hourly.append(row_data)
         except Exception as e:
-            logger.warning(f"GA4 每小時流量查詢失敗（跳過）: {e}")
+            logger.warning(f"GA4 每小時多日流量查詢失敗（跳過）: {e}")
 
         # --- 每日 × 每小時 熱力圖 ---
         hourly_by_date = []

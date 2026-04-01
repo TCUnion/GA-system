@@ -5,9 +5,11 @@ import {
 import ChartCard from '../components/ChartCard';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
+import TaiwanMap from '../components/TaiwanMap';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { getDeviceData, getOsData, getCityData, getLanguageData } from '../services/ga4Service';
+import { getDeviceData, getOsData, getCityData, getLanguageData, aggregateToCounties } from '../services/ga4Service';
 import type { CityData } from '../services/ga4Service';
+import { useMemo } from 'react';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,6 +28,9 @@ function AudiencePage() {
   const { data: os } = useGA4Data(getOsData, []);
   const { data: cities } = useGA4Data(getCityData, []);
   const { data: languages } = useGA4Data(getLanguageData, []);
+
+  // 將城市資料聚合為台灣縣市資料
+  const countyData = useMemo(() => aggregateToCounties(cities), [cities]);
 
   return (
     <div className="page-grid">
@@ -50,7 +55,7 @@ function AudiencePage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
               <XAxis type="number" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} width={50} />
-              <Tooltip formatter={fmt} contentStyle={ts} />
+              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
               <Bar dataKey="users" name="使用者" radius={[0, 6, 6, 0]} barSize={28}>{devices.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -67,20 +72,25 @@ function AudiencePage() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
       <ChartCard title="作業系統分佈" subtitle="使用者作業系統佔比">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={os}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis dataKey="name" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} width={50} />
-            <Tooltip formatter={fmt} contentStyle={ts} />
+            <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
             <Bar dataKey="users" name="使用者" radius={[6, 6, 0, 0]} barSize={40}>{os.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
-      <ChartCard title="Top 10 城市" subtitle="使用者數量最多的城市排行">
-        <DataTable columns={cityColumns} data={cities} />
-      </ChartCard>
+
+      <div className="grid-2 mt-8">
+        <TaiwanMap data={countyData} />
+        <ChartCard title="Top 10 城市" subtitle="使用者數量最多的城市排行">
+          <DataTable columns={cityColumns} data={cities} />
+        </ChartCard>
+      </div>
     </div>
   );
 }

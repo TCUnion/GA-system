@@ -77,7 +77,7 @@ function EngagementPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="day" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} width={50} />
-              <Tooltip formatter={fmt} contentStyle={ts} />
+              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
               <Bar dataKey="sessions" name="工作階段" radius={[6, 6, 0, 0]} barSize={36}>{weekday.map((_, i) => <Cell key={i} fill={i >= 5 ? CHART_COLORS[1] : CHART_COLORS[0]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -89,7 +89,7 @@ function EngagementPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="hour" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 10 }} axisLine={false} tickLine={false} interval={2} />
               <YAxis tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
-              <Tooltip formatter={fmt} contentStyle={ts} />
+              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ stroke: '#a855f7', strokeWidth: 1 }} />
               <Area type="monotone" dataKey="sessions" name="工作階段" stroke="#a855f7" strokeWidth={2} fill="url(#hourGradient)" />
             </AreaChart>
           </ResponsiveContainer>

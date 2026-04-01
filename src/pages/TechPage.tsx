@@ -63,7 +63,7 @@ function TechPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
               <XAxis type="number" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} width={110} />
-              <Tooltip formatter={fmt} contentStyle={ts} />
+              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
               <Bar dataKey="users" name="使用者" radius={[0, 6, 6, 0]} barSize={22}>{browsers.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>

@@ -329,6 +329,67 @@ const CITY_NAME_MAP: Record<string, string> = {
   'London': '倫敦',
 };
 
+/**
+ * 縣市映射表：將 GA4 的城市/行政區名稱對應到台灣 22 縣市
+ * 用於地圖視覺化聚合
+ */
+export const COUNTY_MAPPING: Record<string, string> = {
+  '台北市': '臺北市', '台北': '臺北市', 'Taipei City': '臺北市', 'Taipei': '臺北市',
+  '大安區': '臺北市', '信義區': '臺北市', '中山區': '臺北市', '松山區': '臺北市', '內湖區': '臺北市', '中正區': '臺北市', '大同區': '臺北市', '萬華區': '臺北市', '文山區': '臺北市', '南港區': '臺北市', '士林區': '臺北市', '北投區': '臺北市',
+  '新北市': '新北市', 'New Taipei City': '新北市',
+  '板橋區': '新北市', '中和區': '新北市', '新莊區': '新北市', '三重區': '新北市', '新店區': '新北市', '土城區': '新北市', '永和區': '新北市', '蘆洲區': '新北市', '汐止區': '新北市', '樹林區': '新北市', '淡水區': '新北市', '林口區': '新北市', '三峽區': '新北市', '五股區': '新北市',
+  '桃園市': '桃園市', 'Taoyuan City': '桃園市', 'Taoyuan': '桃園市',
+  '桃園區': '桃園市', '中壢區': '桃園市', '平鎮區': '桃園市', '八德區': '桃園市', '楊梅區': '桃園市', '蘆竹區': '桃園市', '龜山區': '桃園市', '龍潭區': '桃園市',
+  '台中市': '臺中市', 'Taichung City': '臺中市', 'Taichung': '臺中市',
+  '西屯區': '臺中市', '南屯區': '臺中市', '北屯區': '臺中市', '北區': '臺中市', '西區': '臺中市', '南區': '臺中市', '東區': '臺中市', '中區': '臺中市', '大里區': '臺中市', '太平區': '臺中市', '豐原區': '臺中市',
+  '台南市': '臺南市', 'Tainan City': '臺南市', 'Tainan': '臺南市',
+  '永康區': '臺南市', '安南區': '臺南市', '東區(台南)': '臺南市',
+  '高雄市': '高雄市', 'Kaohsiung City': '高雄市', 'Kaohsiung': '高雄市',
+  '三民區': '高雄市', '左營區': '高雄市', '楠梓區': '高雄市', '前鎮區': '高雄市', '苓雅區': '高雄市', '小港區': '高雄市', '鳳山區': '高雄市',
+  '基隆市': '基隆市', 'Keelung City': '基隆市', 'Keelung': '基隆市',
+  '新竹市': '新竹市', 'Hsinchu City': '新竹市',
+  '新竹縣': '新竹縣', 'Hsinchu County': '新竹縣', '竹北市': '新竹縣', '竹東鎮': '新竹縣',
+  '苗栗縣': '苗栗縣', 'Miaoli County': '苗栗縣', '苗栗市': '苗栗縣', '頭份市': '苗栗縣', '竹南鎮': '苗栗縣', '後龍鎮': '苗栗縣',
+  '彰化縣': '彰化縣', 'Changhua County': '彰化縣', '彰化市': '彰化縣', '員林市': '彰化縣', '和美鎮': '彰化縣',
+  '南投縣': '南投縣', 'Nantou County': '南投縣', '南投市': '南投縣', '草屯鎮': '南投縣', '埔里鎮': '南投縣',
+  '雲林縣': '雲林縣', 'Yunlin County': '雲林縣', '斗六市': '雲林縣', '虎尾鎮': '雲林縣',
+  '嘉義市': '嘉義市', 'Chiayi City': '嘉義市',
+  '嘉義縣': '嘉義縣', 'Chiayi County': '嘉義縣', '太保市': '嘉義縣', '民雄鄉': '嘉義縣',
+  '屏東縣': '屏東縣', 'Pingtung County': '屏東縣', '屏東市': '屏東縣', '潮州鎮': '屏東縣',
+  '宜蘭縣': '宜蘭縣', 'Yilan County': '宜蘭縣', '宜蘭市': '宜蘭縣', '羅東鎮': '宜蘭縣',
+  '花蓮縣': '花蓮縣', 'Hualien County': '花蓮縣', '花蓮市': '花蓮縣',
+  '台東縣': '台東縣', 'Taitung County': '台東縣', '台東市': '台東縣',
+  '澎湖縣': '澎湖縣', 'Penghu County': '澎湖縣',
+  '金門縣': '金門縣', 'Kinmen County': '金門縣',
+  '連江縣': '連江縣', 'Lienchiang County': '連江縣',
+};
+
+export interface CountyData {
+  name: string;
+  users: number;
+}
+
+/**
+ * 將城市資料聚合為縣市資料，用於地圖顯示
+ */
+export function aggregateToCounties(cities: CityData[]): CountyData[] {
+  const countyMap: Record<string, number> = {};
+  
+  cities.forEach(item => {
+    // 優先使用映射表，否則直接使用城市名稱（如果是縣市的話）
+    const county = COUNTY_MAPPING[item.city] || (item.city.includes('縣') || item.city.includes('市') ? item.city : null);
+    
+    if (county) {
+      countyMap[county] = (countyMap[county] || 0) + item.users;
+    }
+  });
+
+  return Object.entries(countyMap)
+    .map(([name, users]) => ({ name, users }))
+    .sort((a, b) => b.users - a.users);
+}
+
+
 export function translateCityName(cityName: string): string {
   if (!cityName || cityName.trim() === '' || cityName === '(not set)') return '(未知地區)';
   return CITY_NAME_MAP[cityName] || cityName;

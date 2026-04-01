@@ -230,12 +230,119 @@ export async function getLanguageData({ startDate, endDate, project_id }: DateRa
   return data?.languages || [];
 }
 
+const CITY_NAME_MAP: Record<string, string> = {
+  '': '(未知地區)',
+  '(not set)': '(未知地區)',
+  'Taipei': '台北市',
+  'Taipei City': '台北市',
+  'New Taipei City': '新北市',
+  'Taoyuan': '桃園市',
+  'Taoyuan City': '桃園市',
+  'Taichung': '台中市',
+  'Taichung City': '台中市',
+  'Tainan': '台南市',
+  'Tainan City': '台南市',
+  'Kaohsiung': '高雄市',
+  'Kaohsiung City': '高雄市',
+  'Hsinchu': '新竹',
+  'Hsinchu City': '新竹市',
+  'Keelung': '基隆市',
+  'Keelung City': '基隆市',
+  'Chiayi City': '嘉義市',
+  'Changhua City': '彰化市',
+  // 雙北行政區
+  "Da'an District": '大安區',
+  'Xinyi District': '信義區',
+  'Zhongshan District': '中山區',
+  'Songshan District': '松山區',
+  'Neihu District': '內湖區',
+  'Zhongzheng District': '中正區',
+  'Datong District': '大同區',
+  'Wanhua District': '萬華區',
+  'Wenshan District': '文山區',
+  'Nangang District': '南港區',
+  'Shilin District': '士林區',
+  'Beitou District': '北投區',
+  'Banqiao District': '板橋區',
+  'Zhonghe District': '中和區',
+  'Xinzhuang District': '新莊區',
+  'Sanchong District': '三重區',
+  'Xindian District': '新店區',
+  'Tucheng District': '土城區',
+  'Yonghe District': '永和區',
+  'Luzhou District': '蘆洲區',
+  'Xizhi District': '汐止區',
+  'Shulin District': '樹林區',
+  'Danshui District': '淡水區',
+  'Tamsui District': '淡水區',
+  // 桃園行政區
+  'Taoyuan District': '桃園區',
+  'Zhongli District': '中壢區',
+  'Pingzhen District': '平鎮區',
+  'Bade District': '八德區',
+  'Yangmei District': '楊梅區',
+  'Luzhu District': '蘆竹區',
+  'Guishan District': '龜山區',
+  // 新竹行政區
+  'Zhubei City': '竹北市',
+  'Zhudong Township': '竹東鎮',
+  // 苗栗行政區
+  'Zhunan Township': '竹南鎮',
+  'Toufen City': '頭份市',
+  'Miaoli City': '苗栗市',
+  // 台中行政區
+  'Xitun District': '西屯區',
+  'Nantun District': '南屯區',
+  'Beitun District': '北屯區',
+  'North District': '北區',
+  'West District': '西區',
+  'South District': '南區',
+  'East District': '東區',
+  'Central District': '中區',
+  'Dali District': '大里區',
+  'Taiping District': '太平區',
+  'Fengyuan District': '豐原區',
+  // 高雄行政區
+  'Sanmin District': '三民區',
+  'Zuoying District': '左營區',
+  'Nanzih District': '楠梓區',
+  'Qianzhen District': '前鎮區',
+  'Lingya District': '苓雅區',
+  'Xiaogang District': '小港區',
+  'Fengshan District': '鳳山區',
+  // 宜蘭、花蓮、台東
+  'Yilan City': '宜蘭市',
+  'Luodong Township': '羅東鎮',
+  'Hualien City': '花蓮市',
+  'Taitung City': '台東市',
+  // 全球主要城市
+  'Hong Kong': '香港',
+  'Singapore': '新加坡',
+  'Macau': '澳門',
+  'Beijing': '北京',
+  'Shanghai': '上海',
+  'Tokyo': '東京',
+  'Osaka': '大阪',
+  'Seoul': '首爾',
+  'New York': '紐約',
+  'London': '倫敦',
+};
+
+export function translateCityName(cityName: string): string {
+  if (!cityName || cityName.trim() === '' || cityName === '(not set)') return '(未知地區)';
+  return CITY_NAME_MAP[cityName] || cityName;
+}
+
 /**
  * 取得城市排行
  */
 export async function getCityData({ startDate, endDate, project_id }: DateRangeParams): Promise<CityData[]> {
   const data = await fetchReportData('audience', startDate, endDate, project_id);
-  return data?.cities || [];
+  const cities = data?.cities || [];
+  return cities.map((city: CityData) => ({
+    ...city,
+    city: translateCityName(city.city)
+  }));
 }
 
 /**

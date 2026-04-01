@@ -84,6 +84,12 @@ export interface EventData {
   users: number;
 }
 
+export interface SectionData {
+  name: string;
+  count: number;
+  users: number;
+}
+
 export interface WeekdayData {
   day: string;
   sessions: number;
@@ -577,7 +583,35 @@ export async function getHourlyData({ startDate, endDate, project_id }: DateRang
  */
 export async function getHourlyByDateData({ startDate, endDate, project_id }: DateRangeParams): Promise<HourlyByDateRow[]> {
   const data = await fetchReportData('engagement', startDate, endDate, project_id);
-  return data?.hourlyByDate || [];
+  const rows = data?.hourlyByDate || [];
+
+  return rows.map((row: HourlyByDateRow) => {
+    // 解析 YYYYMMDD 或 YYYY-MM-DD
+    const dateStr = row.date.includes('-') 
+      ? row.date 
+      : `${row.date.slice(0, 4)}-${row.date.slice(4, 6)}-${row.date.slice(6, 8)}`;
+    
+    const dateObj = new Date(dateStr);
+    const day = dateObj.getDay(); // 0 (週日) 到 6 (週六)
+    const isWeekend = day === 0 || day === 6;
+    
+    // 取得簡短星期名稱 (週一, 週二...)
+    const weekday = new Intl.DateTimeFormat('zh-TW', { weekday: 'short' }).format(dateObj);
+    
+    return {
+      ...row,
+      label: `${row.label} (${weekday})`,
+      isWeekend
+    };
+  });
+}
+
+/**
+ * 取得區塊排行資料
+ */
+export async function getSectionData({ startDate, endDate, project_id }: DateRangeParams): Promise<SectionData[]> {
+  const data = await fetchReportData('engagement', startDate, endDate, project_id);
+  return data?.sections || [];
 }
 
 /**

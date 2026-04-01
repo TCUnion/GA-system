@@ -16,7 +16,7 @@
 }
 
 .heatmap-y-label-spacer {
-  flex: 0 0 36px;
+  flex: 0 0 72px;
 }
 
 .heatmap-x-tick {
@@ -44,14 +44,20 @@
 
 /* Y 軸日期標籤 */
 .heatmap-y-label {
-  flex: 0 0 36px;
-  font-size: 9.5px;
+  flex: 0 0 72px;
+  font-size: 9px;
   color: hsl(215, 18%, 52%);
   text-align: right;
-  padding-right: 6px;
+  padding-right: 8px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
+  font-weight: 500;
+}
+
+.heatmap-y-label.is-weekend {
+  color: #fb7185; /* rose-400 */
+  font-weight: 700;
 }
 
 /* 每個色塊 */
@@ -96,7 +102,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  padding-left: 42px;
+  padding-left: 80px;
 }
 
 .legend-label {

@@ -609,8 +609,33 @@ class GAService:
         except Exception as e:
             logger.warning(f"GA4 每日每小時熱力圖查詢失敗（跳過）: {e}")
 
+        # --- 區塊瀏覽排行 (按 section_name 分類) ---
+        sections = []
+        try:
+            # NOTE: 查詢 eventName = "section_view" 的資料，並以 customEvent:section_name 作為維度
+            # 這裡不篩選 eventName，目的是為了從所有帶有 section_name 的事件中統計
+            section_response = self._run_report(
+                dimensions=["customEvent:section_name"],
+                metrics=["eventCount", "totalUsers"],
+                date_ranges=date_ranges,
+                order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="eventCount"), desc=True)],
+                limit=15,
+                property_id=property_id,
+            )
+            sections = [
+                {
+                    "name": row.dimension_values[0].value if row.dimension_values[0].value != "(not set)" else "未命名區塊",
+                    "count": int(row.metric_values[0].value),
+                    "users": int(row.metric_values[1].value),
+                }
+                for row in section_response.rows
+            ]
+        except Exception as e:
+            logger.warning(f"GA4 區塊排行查詢失敗 (可能是未設定 section_name 自訂維度): {e}")
+
         return {
             "events": events,
+            "sections": sections,
             "weekday": weekday,
             "hourly": hourly,
             "hourlyByDate": hourly_by_date,

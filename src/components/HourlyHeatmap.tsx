@@ -5,6 +5,7 @@ export interface HourlyByDateRow {
   date: string;
   label: string;    // MM/DD 格式
   hours: number[];  // 長度 24，索引對應 0-23 時
+  isWeekend?: boolean;
 }
 
 interface HourlyHeatmapProps {
@@ -78,7 +79,9 @@ export default function HourlyHeatmap({ data }: HourlyHeatmapProps) {
         {displayData.map((row) => (
           <div key={row.date} className="heatmap-row">
             {/* Y 軸日期標籤 */}
-            <div className="heatmap-y-label">{row.label}</div>
+            <div className={`heatmap-y-label ${row.isWeekend ? 'is-weekend' : ''}`}>
+              {row.label}
+            </div>
 
             {/* 24 個色塊 */}
             {row.hours.map((val, h) => (

@@ -7,7 +7,7 @@ import DataTable from '../components/DataTable';
 import HourlyHeatmap from '../components/HourlyHeatmap';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData } from '../services/ga4Service';
+import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData, getSectionData } from '../services/ga4Service';
 import PageLoader from '../components/PageLoader';
 import type { EventData } from '../services/ga4Service';
 
@@ -21,8 +21,9 @@ function EngagementPage() {
   const { data: weekday, loading: L2 } = useGA4Data(getWeekdayData, []);
   const { data: hourly, loading: L3 } = useGA4Data(getHourlyData, []);
   const { data: hourlyByDate, loading: L4 } = useGA4Data(getHourlyByDateData, []);
+  const { data: sections, loading: L5 } = useGA4Data(getSectionData, []);
 
-  const isLoading = L1 || L2 || L3 || L4;
+  const isLoading = L1 || L2 || L3 || L4 || L5;
 
   // NOTE: 四個圖表共用同一個 engagement API 端點，
   //       若任一回傳 error，通常表示 GA4 Property 存取失敗或尚無資料
@@ -30,8 +31,40 @@ function EngagementPage() {
 
   const maxEventCount = Math.max(...events.map((e) => e.eventCount), 1);
 
+  const EVENT_NAMES_ZH: Record<string, string> = {
+    'section_view': '區塊瀏覽',
+    'page_view': '頁面瀏覽',
+    'session_start': '工作階段開始',
+    'first_visit': '首次造訪',
+    'user_engagement': '使用者參與',
+    'registration_open': '開啟報名表單',
+    'registration_modal_close': '關閉報名彈窗',
+    'outbound_click': '外部連結點擊',
+    'scroll': '頁面捲動',
+    'click': '一般點擊',
+    'video_progress': '影片播放進度',
+    'form_start': '開始填寫表單',
+    'video_start': '開始播放影片',
+    'language_switch': '切換語言'
+  };
+
   const eventColumns: Column<EventData>[] = [
-    { key: 'eventName', label: '事件名稱', render: (v) => (<code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 4, fontSize: '0.8rem' }}>{v as string}</code>) },
+    { 
+      key: 'eventName', 
+      label: '事件名稱', 
+      render: (v) => {
+        const name = v as string;
+        const zhName = EVENT_NAMES_ZH[name];
+        return (
+          <div className="flex flex-col gap-1">
+            <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 4, fontSize: '0.8rem', width: 'fit-content' }}>
+              {name}
+            </code>
+            {zhName && <span className="text-xs text-slate-400 ml-1">{zhName}</span>}
+          </div>
+        );
+      }
+    },
     { key: 'eventCount', label: '觸發次數', align: 'right', render: (v) => { const n = v as number; return (<div className="bar-cell"><div className="bar-track"><div className="bar-fill" style={{ width: `${(n / maxEventCount) * 100}%`, background: '#a855f7' }} /></div><span className="bar-value">{n.toLocaleString('zh-TW')}</span></div>); } },
     { key: 'users', label: '使用者數', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
   ];
@@ -105,9 +138,23 @@ function EngagementPage() {
         <HourlyHeatmap data={hourlyByDate} />
       </ChartCard>
 
-      <ChartCard title="事件觸發明細" subtitle="各事件的觸發次數和觸及使用者數">
-        <DataTable columns={eventColumns} data={events} />
-      </ChartCard>
+      <div className="grid-2">
+        <ChartCard title="熱門區塊排行" subtitle="依據 section_name 統計點擊與瀏覽次數">
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={sections} layout="vertical" margin={{ left: 40, right: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+              <XAxis type="number" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis dataKey="name" type="category" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} width={100} />
+              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
+              <Bar dataKey="count" name="觸發次數" fill={CHART_COLORS[2]} radius={[0, 4, 4, 0]} barSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="事件觸發明細" subtitle="各事件的觸發次數和觸及使用者數">
+          <DataTable columns={eventColumns} data={events} />
+        </ChartCard>
+      </div>
     </div>
   </div>
   );

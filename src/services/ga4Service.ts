@@ -54,6 +54,7 @@ export interface CountryData {
 }
 
 export interface SourceMediumData {
+  channelGroup?: string;
   source: string;
   medium: string;
   sessions: number;

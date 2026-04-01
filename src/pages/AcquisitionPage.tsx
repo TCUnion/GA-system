@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -31,6 +32,38 @@ function AcquisitionPage() {
 
   const isLoading = L1 || L2 || L3;
 
+  // NOTE: 記錄目前選取的管道名稱，用於篩選下方表格
+  const [activeChannel, setActiveChannel] = useState<string | null>(null);
+  const [activePieIndex, setActivePieIndex] = useState<number | undefined>(undefined);
+
+  const totalSessions = channels.reduce((acc, c) => acc + c.sessions, 0);
+  // 帶入 total 給 renderActiveShape 計算百分比
+  const channelsWithTotal = channels.map(c => ({ ...c, total: totalSessions }));
+
+  // 點擊圓餅圖區塊：切換篩選，再次點擊同一塊則取消
+  const handlePieClick = (_: unknown, index: number) => {
+    if (activePieIndex === index) {
+      setActiveChannel(null);
+      setActivePieIndex(undefined);
+    } else {
+      setActiveChannel(channels[index]?.name ?? null);
+      setActivePieIndex(index);
+    }
+  };
+
+  // 根據選取的管道篩選來源/媒介資料
+  const filteredSm = activeChannel
+    ? sm.filter(row => row.channelGroup === activeChannel)
+    : sm;
+
+  const tableTitle = activeChannel
+    ? `來源 / 媒介明細 — 篩選：${activeChannel}`
+    : '來源 / 媒介明細';
+
+  const tableSubtitle = activeChannel
+    ? `顯示「${activeChannel}」管道的所有流量來源（共 ${filteredSm.length} 筆），點擊圓餅圖同一區塊可取消篩選`
+    : '點擊上方圓餅圖任一管道區塊，可下鑽查看該管道的詳細來源';
+
   return (
     <div className="relative min-h-[500px]">
       {isLoading && <PageLoader />}
@@ -48,11 +81,31 @@ function AcquisitionPage() {
         </div>
 
         <div className="grid-2">
-          <ChartCard title="管道分佈" subtitle="各流量管道的工作階段佔比">
+          <ChartCard title="管道分佈" subtitle={activeChannel ? `已選取：${activeChannel}，再次點選可取消篩選` : '點擊區塊可篩選下方來源/媒介表格'}>
             <ResponsiveContainer width="100%" height={320}>
               <PieChart>
-                <Pie data={channels} dataKey="sessions" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3}>
-                  {channels.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                <Pie
+                  data={channelsWithTotal}
+                  dataKey="sessions"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  onClick={handlePieClick}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {channelsWithTotal.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={CHART_COLORS[i % CHART_COLORS.length]}
+                      opacity={activePieIndex !== undefined && activePieIndex !== i ? 0.35 : 1}
+                      stroke={activePieIndex === i ? 'white' : 'transparent'}
+                      strokeWidth={activePieIndex === i ? 2 : 0}
+                      style={{ transition: 'opacity 0.2s, stroke 0.2s', filter: activePieIndex === i ? `drop-shadow(0 0 6px ${CHART_COLORS[i % CHART_COLORS.length]})` : 'none' }}
+                    />
+                  ))}
                 </Pie>
                 <Tooltip formatter={fmt} contentStyle={ts} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -71,8 +124,45 @@ function AcquisitionPage() {
             </ResponsiveContainer>
           </ChartCard>
         </div>
-        <ChartCard title="來源 / 媒介明細" subtitle="完整的流量來源與對應表現指標">
-          <DataTable columns={smColumns} data={sm} />
+
+        {/* NOTE: 篩選狀態提示列 */}
+        {activeChannel && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 16px',
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            color: 'hsl(215, 80%, 75%)',
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, flexShrink: 0 }}>
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            <span>目前篩選管道：<strong>{activeChannel}</strong>，共 {filteredSm.length} 筆來源/媒介</span>
+            <button
+              onClick={() => { setActiveChannel(null); setActivePieIndex(undefined); }}
+              style={{
+                marginLeft: 'auto',
+                padding: '3px 10px',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: '4px',
+                color: 'hsl(215, 80%, 80%)',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+              }}
+            >
+              × 清除篩選
+            </button>
+          </div>
+        )}
+
+        <ChartCard title={tableTitle} subtitle={tableSubtitle}>
+          <DataTable columns={smColumns} data={filteredSm} />
         </ChartCard>
       </div>
     </div>

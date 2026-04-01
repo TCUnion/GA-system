@@ -376,20 +376,21 @@ class GAService:
                 for row in channel_response.rows
             ]
 
-            # 來源 / 媒介明細
+            # 來源 / 媒介明細 (含所屬管道群組以支援前端下鑽篩選)
             source_response = self._run_report(
-                dimensions=["sessionSource", "sessionMedium"],
+                dimensions=["sessionDefaultChannelGrouping", "sessionSource", "sessionMedium"],
                 metrics=["sessions", "totalUsers", "newUsers", "engagementRate", "averageSessionDuration"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
-                limit=20,
+                limit=50,
                 property_id=property_id,
             )
             source_medium = []
             for row in source_response.rows:
                 source_medium.append({
-                    "source": row.dimension_values[0].value,
-                    "medium": row.dimension_values[1].value,
+                    "channelGroup": row.dimension_values[0].value,
+                    "source": row.dimension_values[1].value,
+                    "medium": row.dimension_values[2].value,
                     "sessions": int(row.metric_values[0].value),
                     "users": int(row.metric_values[1].value),
                     "newUsers": int(row.metric_values[2].value),

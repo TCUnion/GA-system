@@ -7,15 +7,18 @@ import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getPageData, getLandingPageData, getDailyTraffic } from '../services/ga4Service';
+import PageLoader from '../components/PageLoader';
 import type { PageData } from '../services/ga4Service';
 
 const CHART_COLORS = ['#3b82f6', '#22c997'];
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function ContentPage() {
-  const { data: pages } = useGA4Data(getPageData, []);
-  const { data: landing } = useGA4Data(getLandingPageData, []);
-  const { data: traffic } = useGA4Data(getDailyTraffic, []);
+  const { data: pages, loading: L1 } = useGA4Data(getPageData, []);
+  const { data: landing, loading: L2 } = useGA4Data(getLandingPageData, []);
+  const { data: traffic, loading: L3 } = useGA4Data(getDailyTraffic, []);
+
+  const isLoading = L1 || L2 || L3;
 
   const maxViews = Math.max(...pages.map((p) => p.views), 1);
 
@@ -35,7 +38,9 @@ function ContentPage() {
   ];
 
   return (
-    <div className="page-grid">
+    <div className="relative min-h-[500px]">
+      {isLoading && <PageLoader />}
+      <div className={`page-grid transition-opacity duration-300 ${isLoading ? 'opacity-40 pointer-events-none' : ''}`}>
       <div className="page-header">
         <h1>
           {/* NOTE: SVG 文件圖示取代 📄 emoji */}
@@ -70,6 +75,7 @@ function ContentPage() {
         <DataTable columns={landingColumns} data={landing} />
       </ChartCard>
     </div>
+  </div>
   );
 }
 

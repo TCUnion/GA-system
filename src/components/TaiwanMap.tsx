@@ -50,9 +50,9 @@ const TaiwanMap: React.FC<TaiwanMapProps> = ({ data, title = "縣市使用者分
             scale: 6000,
             center: [121.3, 23.7] // 調整中心點以符合台灣導航
           }}
-          className="w-full h-full"
+          className="w-full h-full cursor-grab active:cursor-grabbing"
         >
-          <ZoomableGroup zoom={1} maxZoom={1}>
+          <ZoomableGroup zoom={1} maxZoom={8}>
             <Geographies geography={geoUrl}>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {({ geographies }: { geographies: any[] }) =>
@@ -83,7 +83,7 @@ const TaiwanMap: React.FC<TaiwanMapProps> = ({ data, title = "縣市使用者分
         </ComposableMap>
         
         {/* 指示浮層 */}
-        <div className="absolute bottom-2 right-2 bg-slate-950/80 p-3 rounded-lg border border-slate-800 text-[10px] text-slate-400 shadow-2xl">
+        <div className="absolute bottom-2 right-2 bg-slate-950/80 p-3 rounded-lg border border-slate-800 text-[10px] text-slate-400 shadow-2xl pointer-events-none">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full bg-[#1e293b] border border-slate-700"></div>
             <span>0</span>
@@ -91,7 +91,7 @@ const TaiwanMap: React.FC<TaiwanMapProps> = ({ data, title = "縣市使用者分
             <span>{maxUsers}</span>
             <div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div>
           </div>
-          <p className="text-center">使用者人數熱力圖</p>
+          <p className="text-center">使用者人數熱力圖（可滾動縮放與拖曳移動）</p>
         </div>
       </div>
     </div>

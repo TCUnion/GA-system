@@ -8,6 +8,7 @@ import HourlyHeatmap from '../components/HourlyHeatmap';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData } from '../services/ga4Service';
+import PageLoader from '../components/PageLoader';
 import type { EventData } from '../services/ga4Service';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
@@ -16,10 +17,12 @@ const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function EngagementPage() {
-  const { data: events, error: eventsError } = useGA4Data(getEventData, []);
-  const { data: weekday } = useGA4Data(getWeekdayData, []);
-  const { data: hourly } = useGA4Data(getHourlyData, []);
-  const { data: hourlyByDate } = useGA4Data(getHourlyByDateData, []);
+  const { data: events, loading: L1, error: eventsError } = useGA4Data(getEventData, []);
+  const { data: weekday, loading: L2 } = useGA4Data(getWeekdayData, []);
+  const { data: hourly, loading: L3 } = useGA4Data(getHourlyData, []);
+  const { data: hourlyByDate, loading: L4 } = useGA4Data(getHourlyByDateData, []);
+
+  const isLoading = L1 || L2 || L3 || L4;
 
   // NOTE: 四個圖表共用同一個 engagement API 端點，
   //       若任一回傳 error，通常表示 GA4 Property 存取失敗或尚無資料
@@ -34,7 +37,9 @@ function EngagementPage() {
   ];
 
   return (
-    <div className="page-grid">
+    <div className="relative min-h-[500px]">
+      {isLoading && <PageLoader />}
+      <div className={`page-grid transition-opacity duration-300 ${isLoading ? 'opacity-40 pointer-events-none' : ''}`}>
       <div className="page-header">
         <h1>
           {/* NOTE: SVG 閃電圖示取代 ⚡ emoji */}
@@ -104,6 +109,7 @@ function EngagementPage() {
         <DataTable columns={eventColumns} data={events} />
       </ChartCard>
     </div>
+  </div>
   );
 }
 

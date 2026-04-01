@@ -46,6 +46,13 @@ export interface CityData {
   engagementRate: number;
 }
 
+export interface CountryData {
+  name: string;
+  users: number;
+  sessions: number;
+  engagementRate: number;
+}
+
 export interface SourceMediumData {
   source: string;
   medium: string;
@@ -228,6 +235,33 @@ export async function getOsData({ startDate, endDate, project_id }: DateRangePar
 export async function getLanguageData({ startDate, endDate, project_id }: DateRangeParams): Promise<LanguageData[]> {
   const data = await fetchReportData('audience', startDate, endDate, project_id);
   return data?.languages || [];
+}
+
+const COUNTRY_NAME_MAP: Record<string, string> = {
+  'Taiwan': '台灣',
+  'United States': '美國',
+  'Hong Kong': '香港',
+  'Japan': '日本',
+  'Macau': '澳門',
+  'China': '中國',
+  'Singapore': '新加坡',
+  'Malaysia': '馬來西亞',
+  'South Korea': '韓國',
+  'United Kingdom': '英國',
+  'Australia': '澳洲',
+  'Canada': '加拿大',
+  'Germany': '德國',
+  'France': '法國',
+  'Thailand': '泰國',
+  'Vietnam': '越南',
+  'Philippines': '菲律賓',
+  'Indonesia': '印尼',
+  'India': '印度',
+};
+
+export function translateCountryName(countryName: string): string {
+  if (!countryName || countryName.trim() === '' || countryName === '(not set)') return '(未知國家)';
+  return COUNTRY_NAME_MAP[countryName] || countryName;
 }
 
 const CITY_NAME_MAP: Record<string, string> = {
@@ -454,6 +488,19 @@ export function aggregateToCounties(cities: CityData[]): CountyData[] {
 export function translateCityName(cityName: string): string {
   if (!cityName || cityName.trim() === '' || cityName === '(not set)') return '(未知地區)';
   return CITY_NAME_MAP[cityName] || cityName;
+}
+
+/**
+ * 取得國家排行
+ */
+export async function getCountryData({ startDate, endDate, project_id }: DateRangeParams): Promise<CountryData[]> {
+  const data = await fetchReportData('audience', startDate, endDate, project_id);
+  const countries = data?.countries || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return countries.map((country: any) => ({
+    ...country,
+    name: translateCountryName(country.name)
+  }));
 }
 
 /**

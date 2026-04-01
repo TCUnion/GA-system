@@ -240,11 +240,11 @@ class GAService:
 
     def fetch_audience_report(self, start_date: str = "30daysAgo", end_date: str = "today", property_id: str | None = None) -> dict:
         """
-        取得使用者分析報表，包含裝置、語言、OS、城市分佈。
+        取得使用者分析報表，包含裝置、語言、OS、城市分佈、國家分佈。
 
         Returns:
             格式對齊前端：
-            { devices: DeviceData[], os: OsData[], languages: LanguageData[], cities: CityData[] }
+            { devices: DeviceData[], os: OsData[], languages: LanguageData[], cities: CityData[], countries: dict[] }
         """
         logger.info(f"👥 取得 Audience 使用者分析報表 ({start_date} ~ {end_date})...")
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
@@ -295,6 +295,27 @@ class GAService:
                 for row in lang_response.rows
             ]
 
+            # 國家分佈
+            country_response = self._run_report(
+                dimensions=["country"],
+                metrics=["totalUsers", "sessions", "engagementRate"],
+                date_ranges=date_ranges,
+                order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="totalUsers"), desc=True)],
+                limit=100,
+                property_id=property_id,
+            )
+            countries = []
+            for row in country_response.rows:
+                country_name = row.dimension_values[0].value
+                if country_name == "(not set)":
+                    continue
+                countries.append({
+                    "name": country_name,
+                    "users": int(row.metric_values[0].value),
+                    "sessions": int(row.metric_values[1].value),
+                    "engagementRate": round(float(row.metric_values[2].value) * 100, 1),
+                })
+
             # 城市分佈（含多指標）
             city_response = self._run_report(
                 dimensions=["city"],
@@ -322,6 +343,7 @@ class GAService:
                 "os": os_data,
                 "languages": languages,
                 "cities": cities,
+                "countries": countries,
             }
         except Exception as e:
             logger.error(f"GA4 使用者分析報表查詢失敗: {e}")

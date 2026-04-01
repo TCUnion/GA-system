@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import ChartCard from '../components/ChartCard';
+import PageLoader from '../components/PageLoader';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
@@ -27,55 +28,60 @@ const screenColumns: Column<ScreenData>[] = [
 ];
 
 function TechPage() {
-  const { data: devices } = useGA4Data(getDeviceData, []);
-  const { data: browsers } = useGA4Data(getBrowserData, []);
-  const { data: screens } = useGA4Data(getScreenData, []);
+  const { data: devices, loading: L1 } = useGA4Data(getDeviceData, []);
+  const { data: browsers, loading: L2 } = useGA4Data(getBrowserData, []);
+  const { data: screens, loading: L3 } = useGA4Data(getScreenData, []);
+
+  const isLoading = L1 || L2 || L3;
 
   return (
-    <div className="page-grid">
-      <div className="page-header">
-        <h1>
-          {/* NOTE: SVG 手機圖示取代 📱 emoji */}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
-            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-            <line x1="12" y1="18" x2="12.01" y2="18" />
-          </svg>
-          技術分析
-        </h1>
-        <p>了解使用者使用的裝置、瀏覽器和螢幕解析度</p>
-      </div>
+    <div className="relative min-h-[500px]">
+      {isLoading && <PageLoader />}
+      <div className={`page-grid transition-opacity duration-300 ${isLoading ? 'opacity-40 pointer-events-none' : ''}`}>
+        <div className="page-header">
+          <h1>
+            {/* NOTE: SVG 手機圖示取代 📱 emoji */}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
+            技術分析
+          </h1>
+          <p>了解使用者使用的裝置、瀏覽器和螢幕解析度</p>
+        </div>
 
-      <div className="grid-2">
-        <ChartCard title="裝置類型分佈" subtitle="手機 / 桌機 / 平板佔比">
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie data={devices} dataKey="users" nameKey="name" cx="50%" cy="50%" innerRadius={65} outerRadius={105} paddingAngle={3}>
-                {devices.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
-              </Pie>
-              <Tooltip formatter={fmt} contentStyle={ts} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="瀏覽器分佈" subtitle="依使用者數排序">
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={browsers} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-              <XAxis type="number" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} width={110} />
-              <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
-              <Bar dataKey="users" name="使用者" radius={[0, 6, 6, 0]} barSize={22}>{browsers.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-      <div className="grid-2">
-        <ChartCard title="瀏覽器明細" subtitle="各瀏覽器的參與率比較">
-          <DataTable columns={browserColumns} data={browsers} />
-        </ChartCard>
-        <ChartCard title="螢幕解析度 Top 10" subtitle="使用者最常見的螢幕解析度">
-          <DataTable columns={screenColumns} data={screens} />
-        </ChartCard>
+        <div className="grid-2">
+          <ChartCard title="裝置類型分佈" subtitle="手機 / 桌機 / 平板佔比">
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                <Pie data={devices} dataKey="users" nameKey="name" cx="50%" cy="50%" innerRadius={65} outerRadius={105} paddingAngle={3}>
+                  {devices.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
+                </Pie>
+                <Tooltip formatter={fmt} contentStyle={ts} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+          <ChartCard title="瀏覽器分佈" subtitle="依使用者數排序">
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={browsers} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'hsl(215, 15%, 45%)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(215, 20%, 65%)', fontSize: 12 }} axisLine={false} tickLine={false} width={110} />
+                <Tooltip formatter={fmt} contentStyle={ts} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
+                <Bar dataKey="users" name="使用者" radius={[0, 6, 6, 0]} barSize={22}>{browsers.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+        <div className="grid-2">
+          <ChartCard title="瀏覽器明細" subtitle="各瀏覽器的參與率比較">
+            <DataTable columns={browserColumns} data={browsers} />
+          </ChartCard>
+          <ChartCard title="螢幕解析度 Top 10" subtitle="使用者最常見的螢幕解析度">
+            <DataTable columns={screenColumns} data={screens} />
+          </ChartCard>
+        </div>
       </div>
     </div>
   );

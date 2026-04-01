@@ -7,6 +7,7 @@ import ScoreCard from '../components/ScoreCard';
 import ChartCard from '../components/ChartCard';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getOverviewKpi, getDailyTraffic, getChannelData, getDeviceData } from '../services/ga4Service';
+import PageLoader from '../components/PageLoader';
 import type { KpiData } from '../services/ga4Service';
 
 /**
@@ -83,12 +84,16 @@ const KpiCardRow = ({ data }: KpiCardRowProps) => {
 
 function OverviewPage() {
   const { data: kpi, loading: kpiLoading } = useGA4Data<KpiData[]>(getOverviewKpi, []);
-  const { data: traffic } = useGA4Data(getDailyTraffic, []);
-  const { data: channels } = useGA4Data(getChannelData, []);
-  const { data: devices } = useGA4Data(getDeviceData, []);
+  const { data: traffic, loading: trafficLoading } = useGA4Data(getDailyTraffic, []);
+  const { data: channels, loading: channelsLoading } = useGA4Data(getChannelData, []);
+  const { data: devices, loading: devicesLoading } = useGA4Data(getDeviceData, []);
+
+  const isLoading = kpiLoading || trafficLoading || channelsLoading || devicesLoading;
 
   return (
-    <div className="page-grid">
+    <div className="relative min-h-[500px]">
+      {isLoading && <PageLoader />}
+      <div className={`page-grid transition-opacity duration-300 ${isLoading ? 'opacity-40 pointer-events-none' : ''}`}>
       <div className="page-header">
         <h1>
           {/* NOTE: SVG 圓餅圖圖示取代 📊 emoji */}
@@ -149,6 +154,7 @@ function OverviewPage() {
         </ChartCard>
       </div>
     </div>
+  </div>
   );
 }
 

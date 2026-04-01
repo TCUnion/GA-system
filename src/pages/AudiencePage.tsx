@@ -7,8 +7,9 @@ import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import TaiwanMap from '../components/TaiwanMap';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { getDeviceData, getOsData, getCityData, getLanguageData, aggregateToCounties } from '../services/ga4Service';
-import type { CityData } from '../services/ga4Service';
+import { getDeviceData, getOsData, getCityData, getLanguageData, aggregateToCounties, getCountryData } from '../services/ga4Service';
+import PageLoader from '../components/PageLoader';
+import type { CityData, CountyData, CountryData } from '../services/ga4Service';
 import { useMemo } from 'react';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
@@ -16,24 +17,41 @@ const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#2
 const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh-TW') : String(value);
 const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
+const countyColumns: Column<CountyData>[] = [
+  { key: 'name', label: '縣市', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.name}</div></div>) },
+  { key: 'users', label: '使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
+];
+
 const cityColumns: Column<CityData>[] = [
-  { key: 'city', label: '城市', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.city}</div></div>) },
+  { key: 'city', label: '城市 (市區)', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.city}</div></div>) },
+  { key: 'users', label: '使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
+  { key: 'sessions', label: '工作階段', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
+  { key: 'engagementRate', label: '參與率', align: 'right', render: (v) => { const n = v as number; return <span className={n >= 65 ? 'rate-high' : n >= 50 ? 'rate-medium' : 'rate-low'}>{n.toFixed(1)}%</span>; } },
+];
+
+const countryColumns: Column<CountryData>[] = [
+  { key: 'name', label: '國家', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.name}</div></div>) },
   { key: 'users', label: '使用者', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
   { key: 'sessions', label: '工作階段', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
   { key: 'engagementRate', label: '參與率', align: 'right', render: (v) => { const n = v as number; return <span className={n >= 65 ? 'rate-high' : n >= 50 ? 'rate-medium' : 'rate-low'}>{n.toFixed(1)}%</span>; } },
 ];
 
 function AudiencePage() {
-  const { data: devices } = useGA4Data(getDeviceData, []);
-  const { data: os } = useGA4Data(getOsData, []);
-  const { data: cities } = useGA4Data(getCityData, []);
-  const { data: languages } = useGA4Data(getLanguageData, []);
+  const { data: devices, loading: L1 } = useGA4Data(getDeviceData, []);
+  const { data: os, loading: L2 } = useGA4Data(getOsData, []);
+  const { data: cities, loading: L3 } = useGA4Data(getCityData, []);
+  const { data: languages, loading: L4 } = useGA4Data(getLanguageData, []);
+  const { data: countries, loading: L5 } = useGA4Data(getCountryData, []);
 
   // 將城市資料聚合為台灣縣市資料
   const countyData = useMemo(() => aggregateToCounties(cities), [cities]);
 
+  const isLoading = L1 || L2 || L3 || L4 || L5;
+
   return (
-    <div className="page-grid">
+    <div className="relative min-h-[500px]">
+      {isLoading && <PageLoader />}
+      <div className={`page-grid transition-opacity duration-300 ${isLoading ? 'opacity-40 pointer-events-none' : ''}`}>
       <div className="page-header">
         <h1>
           {/* NOTE: SVG 使用者群組圖示取代 👥 emoji */}
@@ -85,13 +103,30 @@ function AudiencePage() {
         </ResponsiveContainer>
       </ChartCard>
 
+      <div className="mt-8">
+        <ChartCard title="國家分佈" subtitle="各國使用者所在地上層排行">
+          <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+            <DataTable columns={countryColumns} data={countries} />
+          </div>
+        </ChartCard>
+      </div>
+
       <div className="grid-2 mt-8">
         <TaiwanMap data={countyData} />
-        <ChartCard title="城市分佈" subtitle="所有城市的使用者排行數據">
+        <ChartCard title="縣市分佈" subtitle="各縣市地理位置排行數據">
           <div style={{ maxHeight: '600px', overflowY: 'auto', paddingRight: '8px' }}>
+            <DataTable columns={countyColumns} data={countyData} />
+          </div>
+        </ChartCard>
+      </div>
+      
+      <div className="mt-8">
+        <ChartCard title="城市分佈 (細分市區)" subtitle="所有基層城市及市區的使用者排行數據">
+          <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
             <DataTable columns={cityColumns} data={cities} />
           </div>
         </ChartCard>
+      </div>
       </div>
     </div>
   );

@@ -6,11 +6,24 @@
   animation: fadeIn 0.4s ease;
 }
 
+.admin-page .page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin-page .page-header h1 svg {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
 /* Tab 切換 */
 .admin-tabs {
-  display: flex;
+  display: inline-flex;
   gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -61,21 +74,34 @@
 .admin-form-card,
 .admin-table-card {
   padding: var(--space-xl);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .admin-card-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-lg);
   padding-bottom: var(--space-md);
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* 表單 */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
 .admin-form-row {
   display: flex;
-  gap: var(--space-md);
+  gap: var(--space-lg);
   align-items: flex-end;
 }
 
@@ -87,8 +113,21 @@
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-top: var(--space-md);
+  margin-top: var(--space-sm);
   justify-content: flex-end;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 /* 輸入框 */
@@ -120,6 +159,11 @@
 
 .admin-select {
   cursor: pointer;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="none" class="w-4 h-4" stroke="%239ca3af" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>');
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding-right: 36px;
 }
 
 /* 顏色選擇器 */
@@ -130,19 +174,27 @@
 }
 
 .admin-color-input {
-  width: 48px;
-  height: 40px;
+  width: 44px;
+  height: 42px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   cursor: pointer;
   background: none;
   padding: 2px;
+  transition: all var(--transition-fast);
+}
+
+.admin-color-input:hover {
+  border-color: var(--color-accent);
 }
 
 .color-value {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-tertiary);
   font-family: monospace;
+  background: rgba(255,255,255,0.03);
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 /* 寬欄 */
@@ -154,11 +206,12 @@
 .admin-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -233,6 +286,9 @@
 /* 表格 */
 .admin-table-wrapper {
   overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .admin-table {
@@ -243,20 +299,29 @@
 
 .admin-table th {
   text-align: left;
-  padding: 10px 16px;
+  padding: 14px 18px;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .admin-table td {
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   vertical-align: middle;
+}
+
+.admin-table tr {
+  transition: background-color var(--transition-fast);
+}
+
+.admin-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .admin-table tr:last-child td {
@@ -283,13 +348,22 @@
 .role-badge {
   appearance: none;
   -webkit-appearance: none;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 20px;
-  padding: 3px 12px;
+  padding: 4px 28px 4px 12px;
   font-size: 0.75rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  transition: all var(--transition-fast);
+  background-image: url('data:image/svg+xml;utf8,<svg fill="none" class="w-4 h-4" stroke="%239ca3af" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>');
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+}
+
+.role-badge:hover {
+  border-color: var(--border-color);
 }
 
 .role-badge--admin {
@@ -305,23 +379,35 @@
 /* 專案網格 */
 .admin-projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
 }
 
 .admin-project-card {
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
-  padding: var(--space-md);
+  padding: var(--space-lg);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.admin-project-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-color-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .admin-project-color {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-top: 4px;
+  margin-top: 5px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .admin-project-info {
@@ -476,8 +562,17 @@
     flex-direction: column;
     align-items: stretch;
   }
+  
+  .form-group {
+    width: 100%;
+  }
 
   .admin-projects-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .admin-form-card, 
+  .admin-table-card {
+    padding: var(--space-md);
   }
 }

@@ -98,8 +98,22 @@ CREATE INDEX IF NOT EXISTS idx_user_project_perms_user ON user_project_permissio
 CREATE INDEX IF NOT EXISTS idx_user_project_perms_project ON user_project_permissions (project_id);
 
 -- =============================================
--- 6. RLS 策略
+-- 6. RLS 策略 (修正 Infinite Recursion)
 -- =============================================
+
+-- 建立一個繞過 RLS 的 Security Definer 函數，用來檢查 admin 權限
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$;
 
 -- profiles：啟用 RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -110,28 +124,24 @@ CREATE POLICY "使用者可讀自己的 profile"
   TO authenticated
   USING (id = auth.uid());
 
--- 管理員可讀全部 profiles
+-- 管理員可讀全部 profiles (改用 is_admin 避免無限迴圈)
+DROP POLICY IF EXISTS "管理員可讀所有 profile" ON profiles;
 CREATE POLICY "管理員可讀所有 profile"
   ON profiles FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
-    )
-  );
+  USING (is_admin());
 
 -- projects：啟用 RLS
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
 -- 已登入使用者可讀「自己有權限」的專案
+DROP POLICY IF EXISTS "使用者只能看有權限的專案" ON projects;
 CREATE POLICY "使用者只能看有權限的專案"
   ON projects FOR SELECT
   TO authenticated
   USING (
-    -- 管理員可看全部
-    EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+    is_admin()
     OR
-    -- 一般使用者看已授權的專案
     EXISTS (
       SELECT 1 FROM user_project_permissions upp
       WHERE upp.user_id = auth.uid() AND upp.project_id = projects.id
@@ -141,26 +151,26 @@ CREATE POLICY "使用者只能看有權限的專案"
 -- user_project_permissions：啟用 RLS
 ALTER TABLE user_project_permissions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "使用者只能看自己的授權記錄" ON user_project_permissions;
 CREATE POLICY "使用者只能看自己的授權記錄"
   ON user_project_permissions FOR SELECT
   TO authenticated
   USING (
     user_id = auth.uid()
     OR
-    EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+    is_admin()
   );
 
--- 更新 ga4_cache RLS：登入使用者只能看有授權的專案
+-- 更新 ga4_cache RLS
 DROP POLICY IF EXISTS "允許匿名讀取 ga4_cache" ON ga4_cache;
+DROP POLICY IF EXISTS "已登入使用者可讀有授權的快取" ON ga4_cache;
 CREATE POLICY "已登入使用者可讀有授權的快取"
   ON ga4_cache FOR SELECT
   TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
-    OR
-    project_id IS NULL
-    OR
-    EXISTS (
+    is_admin()
+    OR project_id IS NULL
+    OR EXISTS (
       SELECT 1 FROM user_project_permissions upp
       WHERE upp.user_id = auth.uid() AND upp.project_id = ga4_cache.project_id
     )
@@ -168,15 +178,14 @@ CREATE POLICY "已登入使用者可讀有授權的快取"
 
 -- 更新 ga4_daily_snapshot RLS
 DROP POLICY IF EXISTS "允許匿名讀取 ga4_daily_snapshot" ON ga4_daily_snapshot;
+DROP POLICY IF EXISTS "已登入使用者可讀有授權的快照" ON ga4_daily_snapshot;
 CREATE POLICY "已登入使用者可讀有授權的快照"
   ON ga4_daily_snapshot FOR SELECT
   TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
-    OR
-    project_id IS NULL
-    OR
-    EXISTS (
+    is_admin()
+    OR project_id IS NULL
+    OR EXISTS (
       SELECT 1 FROM user_project_permissions upp
       WHERE upp.user_id = auth.uid() AND upp.project_id = ga4_daily_snapshot.project_id
     )

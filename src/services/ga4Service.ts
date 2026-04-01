@@ -346,7 +346,6 @@ const CITY_NAME_MAP: Record<string, string> = {
   'Daya District': '大雅區',
   'Tanzi District': '潭子區',
   // 彰化行政區
-  'Changhua City': '彰化市',
   'Yuanlin City': '員林市',
   'He-mei Town': '和美鎮',
   'Hemei Township': '和美鎮',

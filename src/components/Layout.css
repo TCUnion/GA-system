@@ -501,6 +501,41 @@
   border-color: var(--border-color);
 }
 
+/* --- AI 匯出按鈕 --- */
+.btn-export-ai {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-purple));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+}
+
+.btn-export-ai:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(108, 92, 231, 0.4);
+}
+
+.btn-export-ai:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.loader-spinner {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
 .page-content {
   padding: var(--space-xl);
 }

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProject } from '../contexts/ProjectContext';
 import DateRangePicker from './DateRangePicker';
 import './Layout.css';
+import { generateAIPrompt } from '../utils/exportForAI';
 
 /**
  * Layout 元件
@@ -97,6 +98,7 @@ function Layout() {
   const { status, lastUpdatedAt, dateRange, setDateRange } = useConnection();
   const { user, signOut } = useAuth();
   const { projects, currentProject, role, switchProject } = useProject();
+  const [isExporting, setIsExporting] = useState(false);
   const navigate = useNavigate();
 
   // 連線狀態文字與樣式映射
@@ -107,6 +109,25 @@ function Layout() {
   };
 
   const currentStatus = statusConfig[status];
+
+  // 處理匯出 AI 報告
+  const handleExportAI = async () => {
+    setIsExporting(true);
+    try {
+      const markdown = await generateAIPrompt({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        project_id: currentProject?.id
+      });
+      await navigator.clipboard.writeText(markdown);
+      alert('已成功將 GA4 數據報告複製到剪貼簿！可直接貼給 AI 進行分析。');
+    } catch (error) {
+      console.error('匯出失敗:', error);
+      alert('匯出資料失敗。');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="layout">
@@ -301,6 +322,21 @@ function Layout() {
             <span className="top-bar-title">GA4 數據儀表板</span>
           </div>
           <div className="top-bar-right">
+            <button
+              onClick={handleExportAI}
+              className="btn-export-ai"
+              disabled={isExporting}
+              title="將這段時間的全局數據聚合並複製給 AI"
+            >
+              {isExporting ? (
+                <span className="loader-spinner" style={{ width: '16px', height: '16px' }} />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
+                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                </svg>
+              )}
+              {isExporting ? '處理中...' : '匯出 AI 分析'}
+            </button>
             <DateRangePicker
               initialStartDate={dateRange.startDate}
               initialEndDate={dateRange.endDate}

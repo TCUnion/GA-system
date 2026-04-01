@@ -485,8 +485,12 @@ class GAService:
         logger.info(f"⚡ 取得 Engagement 參與分析報表 ({start_date} ~ {end_date})...")
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
+        # NOTE: 將四個子查詢拆分為獨立 try/except 區塊，
+        #       確保單一 GA4 查詢失敗時不拖累整份報表，能回傳部分資料。
+
+        # --- 事件排行 ---
+        events = []
         try:
-            # 事件排行
             event_response = self._run_report(
                 dimensions=["eventName"],
                 metrics=["eventCount", "totalUsers"],
@@ -503,8 +507,12 @@ class GAService:
                 }
                 for row in event_response.rows
             ]
+        except Exception as e:
+            logger.warning(f"GA4 事件排行查詢失敗（跳過）: {e}")
 
-            # 每週流量分佈
+        # --- 每週流量分佈 ---
+        weekday = []
+        try:
             weekday_response = self._run_report(
                 dimensions=["dayOfWeek"],
                 metrics=["sessions"],
@@ -523,8 +531,12 @@ class GAService:
                 {"day": weekday_map[str(i)], "sessions": weekday_raw.get(str(i), 0)}
                 for i in [1, 2, 3, 4, 5, 6, 0]
             ]
+        except Exception as e:
+            logger.warning(f"GA4 每週流量查詢失敗（跳過）: {e}")
 
-            # 每小時流量分佈（總覽，X 軸=小時）
+        # --- 每小時流量分佈（總覽） ---
+        hourly = []
+        try:
             hourly_response = self._run_report(
                 dimensions=["hour"],
                 metrics=["sessions"],
@@ -535,12 +547,17 @@ class GAService:
                 row.dimension_values[0].value: int(row.metric_values[0].value)
                 for row in hourly_response.rows
             }
+            # NOTE: 加上 ":00" 後綴以對齊前端 HourlyData.hour 型別定義（格式 "HH:00"）
             hourly = [
-                {"hour": f"{h:02d}", "sessions": hourly_raw.get(f"{h:02d}", 0)}
+                {"hour": f"{h:02d}:00", "sessions": hourly_raw.get(f"{h:02d}", 0)}
                 for h in range(24)
             ]
+        except Exception as e:
+            logger.warning(f"GA4 每小時流量查詢失敗（跳過）: {e}")
 
-            # 每日 × 每小時 熱力圖資料（date+hour 二維）
+        # --- 每日 × 每小時 熱力圖 ---
+        hourly_by_date = []
+        try:
             hourly_date_response = self._run_report(
                 dimensions=["date", "hour"],
                 metrics=["sessions"],
@@ -566,16 +583,15 @@ class GAService:
                 }
                 for d in sorted(hourly_by_date_raw)
             ]
-
-            return {
-                "events": events,
-                "weekday": weekday,
-                "hourly": hourly,
-                "hourlyByDate": hourly_by_date,
-            }
         except Exception as e:
-            logger.error(f"GA4 參與分析報表查詢失敗: {e}")
-            raise e
+            logger.warning(f"GA4 每日每小時熱力圖查詢失敗（跳過）: {e}")
+
+        return {
+            "events": events,
+            "weekday": weekday,
+            "hourly": hourly,
+            "hourlyByDate": hourly_by_date,
+        }
 
     # ----- 6. Tech 技術分析報表 -----
 

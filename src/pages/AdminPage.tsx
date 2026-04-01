@@ -523,7 +523,7 @@ function AdminPage() {
                     id="new-project-name"
                     type="text"
                     className="admin-input"
-                    placeholder="例：南庄山水"
+                    placeholder="例：SEH GA4 SYSTEM"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     required

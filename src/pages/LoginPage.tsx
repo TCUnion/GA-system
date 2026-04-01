@@ -63,7 +63,7 @@ function LoginPage() {
               <polyline points="7 20 12 11 17 20" />
             </svg>
           </div>
-          <h1 className="login-title">南庄山水</h1>
+          <h1 className="login-title">SEH GA4 SYSTEM</h1>
           <p className="login-subtitle">Analytics Dashboard</p>
         </div>
 

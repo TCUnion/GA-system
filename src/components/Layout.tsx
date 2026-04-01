@@ -123,7 +123,7 @@ function Layout() {
               </svg>
             </div>
             <div className="sidebar-brand-text">
-              <h2>南庄山水</h2>
+              <h2>SEH GA4 SYSTEM</h2>
               <span>Analytics Dashboard</span>
             </div>
           </div>

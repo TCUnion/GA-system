@@ -18,18 +18,43 @@ scheduler = BackgroundScheduler()
 def _sync_job():
     """
     排程觸發的同步任務包裝函式。
-
-    NOTE: 因為排程在獨立執行緒中運行，所有例外必須在此捕捉，
-    否則 APScheduler 會吞掉錯誤且無法除錯。
+    遍歷資料庫中所有啟用的專案並執行同步。
     """
-    logger.info("⏰ 排程觸發: 開始自動同步 GA4 資料...")
+    logger.info("⏰ 開始執行多專案自動同步任務...")
+    
+    from services.supabase_service import supabase_service
+    from services.sync_runner import run_sync
+
     try:
-        # HACK: 延遲匯入避免循環依賴，ga_service 模組層級會初始化 GA4 client
-        from services.sync_runner import run_sync
-        result = run_sync()
-        logger.info(f"⏰ 排程同步完成: {result['message']}")
+        # 1. 取得所有啟用的專案
+        res = supabase_service.client.table("projects").select("id, name, ga_property_id").eq("is_active", True).execute()
+        projects = res.data or []
+        
+        if not projects:
+            logger.info("📅 查無啟用的專案，跳過同步")
+            return
+
+        success_count = 0
+        error_count = 0
+
+        # 2. 逐一執行同步
+        for project in projects:
+            p_id = project["id"]
+            p_name = project["name"]
+            prop_id = project["ga_property_id"]
+            
+            try:
+                logger.info(f"🔄 正在同步專案: {p_name} ({p_id})")
+                run_sync(project_id=p_id, property_id=prop_id)
+                success_count += 1
+            except Exception as e:
+                logger.error(f"❌ 專案 {p_name} 同步失敗: {e}")
+                error_count += 1
+        
+        logger.info(f"🏁 多專案同步任務結束。成功: {success_count}, 失敗: {error_count}")
+
     except Exception as e:
-        logger.error(f"⏰ 排程同步失敗: {e}", exc_info=True)
+        logger.error(f"⏰ 排程同步全域錯誤: {e}", exc_info=True)
 
 
 def start_scheduler():

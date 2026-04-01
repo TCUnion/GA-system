@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 from supabase import create_client, Client
 from core.config import settings
@@ -23,9 +23,13 @@ class SupabaseService:
         """
         logger.info(f"💾 將 {report_type} 報表寫入 Supabase 快取...")
         try:
+            # NOTE: 必須顯式傳入 fetched_at，因為 Supabase 的 DEFAULT now()
+            # 只在 INSERT 時生效，upsert 觸發 UPDATE 路徑時不會自動更新。
+            now_utc = datetime.now(timezone.utc).isoformat()
             response = self.client.table("ga4_cache").upsert({
                 "report_type": report_type,
                 "data": data,
+                "fetched_at": now_utc,
             }, on_conflict="report_type").execute()
             return response
         except Exception as e:

@@ -15,6 +15,7 @@
         *   在背景透過 `APScheduler` 每 30 分鐘自動對 GA4 發出請求。
         *   使用 `SUPABASE_SERVICE_ROLE_KEY` 強制將報表寫入 Supabase 達到快取目的。
         *   實作「優雅停止」(FastAPI Lifespan) 以確保伺服器關閉時排程不會中斷關鍵交易。
+        *   **流量異常偵測**: 每日同步時自動對比「今日至今」與「昨日」流量，跌幅 > 50% 時觸發 Webhook 告警。
 *   **資料庫 (Database)**
     *   **服務**: Supabase (託管於 Zeabur 等環境)，提供 PostgreSQL 儲存。
     *   **資料表結構**:
@@ -41,6 +42,7 @@
 *   `GOOGLE_CREDENTIALS_BASE64`: （敏感）供雲端環境使用的 GCP 服務帳戶 Base64 編碼字串。（當設定時，會覆蓋 `GOOGLE_APPLICATION_CREDENTIALS`）
 *   `GOOGLE_APPLICATION_CREDENTIALS`: 本地除錯時使用的 `credentials/xxx.json` 實體檔案路徑（與 Base64 擇一使用）。
 *   `SYNC_INTERVAL_MINUTES`: （可選）排程頻率，預設為 30。
+*   `ANOMALY_WEBHOOK_URL`: （新增）n8n 接收流量異常告警的 Webhook 地址。
 
 ### 🔵 前端 (Vite - `.env` 或 Zeabur Variables)
 *   `VITE_SUPABASE_URL`: 供 supabase-js 初始化使用。
@@ -49,8 +51,9 @@
 
 ## 4. 待辦與未來規劃 (TODO / Next Steps)
 
-1. **圖表開發與綁定**: 前端 UI 開發 Date Range Picker（日期範圍選擇），不過因為快取是 30 天寫死，後續需評估是否由前端發 API 給後端即時拉取任意區間的資料。
+1. **圖表開發與綁定**: [已完成] 前端 UI 已整合 Date Range Picker，並透過後端 API 即時拉取 GA4 任意區間資料（帶有 5 分鐘記憶體快取優化）。
 2. **安全性優化**:
     *   設定並啟用 Supabase Table 的 RLS 策略：`ENABLE ROW LEVEL SECURITY;`。
-    *   將前端的 `allow_origins=["*"]` 限制為正式部署的網域。
-3. **錯誤處理 (n8n 備案)**: 若未來有更複雜的錯誤警報機制，或是要寄送報表到 LINE，可接入 n8n 工作流，並由後端拋出 Webhook。
+    *   將前端的 `allow_origins=["*"]` 限制為正式部署的網域（建議於生產環境設定）。
+3. **錯誤處理 (n8n 備案)**: [已實作] 已建立 n8n 工作流用於每日報表、異常告警與自動備份。
+4. **效能優化**: 定期清理 `ga4_cache` 中過舊的資料，或引入更持久的分布表快取。

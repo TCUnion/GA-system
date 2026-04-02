@@ -64,6 +64,14 @@ export interface SourceMediumData {
   avgDuration: number;
 }
 
+export interface TrackingHealth {
+  total_events: number;
+  not_set_count: number;
+  not_set_ratio: number; // 0.0 ~ 1.0
+  healthy_count: number;
+  healthy_ratio: number; // 0.0 ~ 1.0
+}
+
 export interface SocialData {
   platform: string;
   sessions: number;
@@ -634,6 +642,14 @@ export async function getHourlyByDateData({ startDate, endDate, project_id }: Da
 export async function getSectionData({ startDate, endDate, project_id }: DateRangeParams): Promise<SectionData[]> {
   const data = await fetchReportData('engagement', startDate, endDate, project_id);
   return data?.sections || [];
+}
+
+/**
+ * 取得追蹤健康度資料 (Tracking Health)
+ */
+export async function getTrackingHealthData({ startDate, endDate, project_id }: DateRangeParams): Promise<TrackingHealth | null> {
+  const data = await fetchReportData('engagement', startDate, endDate, project_id);
+  return data?.tracking_health || null;
 }
 
 /**

@@ -7,7 +7,10 @@ import DataTable from '../components/DataTable';
 import HourlyHeatmap from '../components/HourlyHeatmap';
 import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
-import { getEventData, getWeekdayData, getHourlyData, getHourlyByDateData, getSectionData } from '../services/ga4Service';
+import { 
+  getEventData, getWeekdayData, getHourlyData, 
+  getHourlyByDateData, getSectionData, getTrackingHealthData 
+} from '../services/ga4Service';
 import PageLoader from '../components/PageLoader';
 import type { EventData } from '../services/ga4Service';
 
@@ -22,8 +25,9 @@ function EngagementPage() {
   const { data: hourly, loading: L3 } = useGA4Data(getHourlyData, []);
   const { data: hourlyByDate, loading: L4 } = useGA4Data(getHourlyByDateData, []);
   const { data: sections, loading: L5 } = useGA4Data(getSectionData, []);
+  const { data: health, loading: L6 } = useGA4Data(getTrackingHealthData, null);
 
-  const isLoading = L1 || L2 || L3 || L4 || L5;
+  const isLoading = L1 || L2 || L3 || L4 || L5 || L6;
 
   // NOTE: 四個圖表共用同一個 engagement API 端點，
   //       若任一回傳 error，通常表示 GA4 Property 存取失敗或尚無資料
@@ -69,6 +73,10 @@ function EngagementPage() {
     { key: 'users', label: '使用者數', align: 'right', render: (v) => (v as number).toLocaleString('zh-TW') },
   ];
 
+  // 判斷健康度
+  const isHealthy = health ? health.not_set_ratio < 0.1 : true;
+  const coveragePercent = health ? Math.round(health.healthy_ratio * 100) : 0;
+
   return (
     <div className="relative min-h-[500px]">
       {isLoading && <PageLoader />}
@@ -82,6 +90,68 @@ function EngagementPage() {
           參與分析
         </h1>
         <p>了解使用者的行為模式和互動頻率</p>
+      </div>
+
+      {/* 追蹤異常檢測面板 - 使用全域 glass-card 樣式並修復 SVG 大小異常 */}
+      <div 
+        className="glass-card" 
+        style={{ 
+          padding: '24px', 
+          marginBottom: '24px',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: '24px',
+          borderLeft: isHealthy ? '4px solid var(--color-success)' : '4px solid var(--color-warning)',
+          background: isHealthy ? 'rgba(34, 201, 151, 0.05)' : 'rgba(245, 166, 35, 0.05)'
+        }}
+      >
+        <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+          <svg width="96" height="96" viewBox="0 0 36 36">
+            <path stroke="rgba(255,255,255,0.06)" strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeWidth="3" />
+            <path 
+              stroke={isHealthy ? 'var(--color-success)' : 'var(--color-warning)'} 
+              strokeDasharray={`${coveragePercent}, 100`} 
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+              fill="none" 
+              strokeWidth="3" 
+              strokeLinecap="round" 
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{coveragePercent}%</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>覆蓋率</span>
+          </div>
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            {isHealthy ? (
+              <svg width="20" height="20" fill="none" stroke="var(--color-success)" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            ) : (
+              <svg width="20" height="20" fill="none" stroke="var(--color-warning)" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            )}
+            追蹤異常檢測 (Tracking Anomaly Detection)
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            {isHealthy 
+              ? '目前區塊命名追蹤狀況良好，僅有極少數事件未正確標記。' 
+              : `偵測到異常！目前約 ${Math.round((health?.not_set_ratio || 0) * 100)}% 的核心區塊數據未帶有名稱 (not set)。建議檢查埋點代碼。`}
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px', paddingRight: '16px' }}>
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>總事件數</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{health?.total_events.toLocaleString('zh-TW') || 0}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>異常比例</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: isHealthy ? 'inherit' : 'var(--color-warning)' }}>
+              {Math.round((health?.not_set_ratio || 0) * 100)}%
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* NOTE: 當資料載入失敗時，顯示警示橫幅提醒使用者 */}

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # NOTE: 雲端部署用，Base64 編碼的 GCP 服務帳戶 JSON 內容
     GOOGLE_CREDENTIALS_BASE64: str | None = None
 
+    # NOTE: 流量異常告警 Webhook URL (n8n)
+    ANOMALY_WEBHOOK_URL: str | None = None
+
     # NOTE: 排程同步間隔（分鐘），可透過環境變數覆寫，預設每 30 分鐘
     SYNC_INTERVAL_MINUTES: int = 30
 

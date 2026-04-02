@@ -12,6 +12,9 @@ from google.analytics.data_v1beta.types import (
     Metric,
     RunReportRequest,
     OrderBy,
+    FilterExpression,
+    FilterExpressionList,
+    Filter,
 )
 from google.oauth2 import service_account
 from core.config import settings
@@ -77,6 +80,11 @@ class GAService:
             logger.error(f"GA4 Client 初始化失敗: {e}")
             raise e
 
+        # --- 前端請求快取 ---
+        # 存儲格式: { cache_key: (timestamp, data) }
+        self._api_cache = {}
+        self._api_cache_ttl = 300  # 預設緩存 5 分鐘
+
     # ----- 共用內部方法 -----
 
     def _resolve_real_date(self, date_str: str) -> datetime.date:
@@ -112,10 +120,26 @@ class GAService:
             end_date=prev_end_dt.strftime("%Y-%m-%d")
         )
 
+    def _get_from_cache(self, key: str):
+        """從記憶體快取中取得資料，若過期則返回 None"""
+        if key in self._api_cache:
+            ts, data = self._api_cache[key]
+            if (datetime.now().timestamp() - ts) < self._api_cache_ttl:
+                logger.info(f"⚡ 從快取讀取: {key}")
+                return data
+            else:
+                del self._api_cache[key]
+        return None
+
+    def _set_to_cache(self, key: str, data: any):
+        """將資料存入記憶體快取"""
+        self._api_cache[key] = (datetime.now().timestamp(), data)
+
 
     def _run_report(self, dimensions: list[str], metrics: list[str],
                     date_ranges: list[DateRange] | None = None,
                     order_bys: list[OrderBy] | None = None,
+                    dimension_filter: FilterExpression | None = None,
                     limit: int = 0,
                     property_id: str | None = None):
         """
@@ -126,6 +150,7 @@ class GAService:
             metrics: 指標名稱列表
             date_ranges: 日期範圍（預設為近 30 天）
             order_bys: 排序規則
+            dimension_filter: 維度過濾器
             limit: 回傳行數上限，0 表示不限制
             property_id: 指定 GA4 Property ID，如未指定則使用預設值
         """
@@ -139,6 +164,7 @@ class GAService:
             metrics=[Metric(name=m) for m in metrics],
             date_ranges=date_ranges or [DEFAULT_DATE_RANGE],
             order_bys=order_bys or [],
+            dimension_filter=dimension_filter,
             limit=limit,
         )
         return self.client.run_report(request)
@@ -154,6 +180,10 @@ class GAService:
             { kpi: {...}, previousKpi: {...} }
         """
         logger.info(f"📊 取得 Overview 總覽報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"overview:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
 
         current_range = DateRange(start_date=start_date, end_date=end_date)
         compare_range = self._get_compare_date_range(start_date, end_date)
@@ -195,7 +225,9 @@ class GAService:
                 target["avgSessionDuration"] = round(float(row.metric_values[4].value), 2)
                 target["bounceRate"] = round(float(row.metric_values[5].value) * 100, 2)
 
-            return {"kpi": kpi, "previousKpi": prev_kpi}
+            result = {"kpi": kpi, "previousKpi": prev_kpi}
+            self._set_to_cache(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"GA4 總覽報表查詢發生錯誤: {e}")
             raise e
@@ -206,6 +238,10 @@ class GAService:
         Returns: { "dailyTraffic": [ ... ] }
         """
         logger.info(f"📈 取得 Daily Traffic 報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"traffic:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
@@ -229,9 +265,11 @@ class GAService:
                     "views": int(row.metric_values[3].value),
                 })
 
-            return {
+            result = {
                 "dailyTraffic": daily_traffic,
             }
+            self._set_to_cache(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"GA4 每日流量報表查詢失敗: {e}")
             raise e
@@ -247,6 +285,10 @@ class GAService:
             { devices: DeviceData[], os: OsData[], languages: LanguageData[], cities: CityData[], countries: dict[] }
         """
         logger.info(f"👥 取得 Audience 使用者分析報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"audience:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
@@ -338,13 +380,15 @@ class GAService:
                     "engagementRate": round(float(row.metric_values[2].value) * 100, 1),
                 })
 
-            return {
+            result = {
                 "devices": devices,
                 "os": os_data,
                 "languages": languages,
                 "cities": cities,
                 "countries": countries,
             }
+            self._set_to_cache(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"GA4 使用者分析報表查詢失敗: {e}")
             raise e
@@ -360,6 +404,10 @@ class GAService:
             { channels: ChannelData[], sourceMedium: SourceMediumData[], social: SocialData[] }
         """
         logger.info(f"🔗 取得 Acquisition 流量來源報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"acquisition:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
@@ -464,12 +512,14 @@ class GAService:
                 })
             ai_traffic = sorted(ai_traffic, key=lambda x: x["sessions"], reverse=True)
 
-            return {
+            result = {
                 "channels": channels,
                 "sourceMedium": source_medium,
                 "social": social,
                 "aiTraffic": ai_traffic,
             }
+            self._set_to_cache(cache_key, result)
+            return result
 
         except Exception as e:
             logger.error(f"GA4 流量來源報表查詢失敗: {e}")
@@ -486,6 +536,10 @@ class GAService:
             { pages: PageData[], landingPages: PageData[] }
         """
         logger.info(f"📄 取得 Content 內容分析報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"content:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
@@ -530,10 +584,12 @@ class GAService:
                     "bounceRate": round(float(row.metric_values[2].value) * 100, 1),
                 })
 
-            return {
+            result = {
                 "pages": pages,
                 "landingPages": landing_pages,
             }
+            self._set_to_cache(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"GA4 內容分析報表查詢失敗: {e}")
             raise e
@@ -549,6 +605,10 @@ class GAService:
             { events: EventData[], weekday: WeekdayData[], hourly: HourlyData[] }
         """
         logger.info(f"⚡ 取得 Engagement 參與分析報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"engagement:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         # NOTE: 將四個子查詢拆分為獨立 try/except 區塊，
@@ -668,13 +728,35 @@ class GAService:
         # --- 區塊瀏覽排行 (按 section_name 分類) ---
         sections = []
         try:
-            # NOTE: 查詢 eventName = "section_view" 的資料，並以 customEvent:section_name 作為維度
-            # 這裡不篩選 eventName，目的是為了從所有帶有 section_name 的事件中統計
+            # 排除 (not set) 與空值，過濾掉非區塊追蹤的雜訊
+            not_set_filter = FilterExpression(
+                not_expression=FilterExpression(
+                    or_group=FilterExpressionList(
+                        expressions=[
+                            FilterExpression(
+                                filter=Filter(
+                                    field_name="customEvent:section_name",
+                                    string_filter=Filter.StringFilter(value="(not set)")
+                                )
+                            ),
+                            FilterExpression(
+                                filter=Filter(
+                                    field_name="customEvent:section_name",
+                                    string_filter=Filter.StringFilter(value="")
+                                )
+                            ),
+                        ]
+                    )
+                )
+            )
+
+            # NOTE: 查詢帶有 section_name 的事件資料
             section_response = self._run_report(
                 dimensions=["customEvent:section_name"],
                 metrics=["eventCount", "totalUsers"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="eventCount"), desc=True)],
+                dimension_filter=not_set_filter,
                 limit=15,
                 property_id=property_id,
             )
@@ -689,13 +771,52 @@ class GAService:
         except Exception as e:
             logger.warning(f"GA4 區塊排行查詢失敗 (可能是未設定 section_name 自訂維度): {e}")
 
-        return {
+        # --- 追蹤健康檢測 (Tracking Health) ---
+        tracking_health = {
+            "total_events": 0,
+            "not_set_count": 0,
+            "not_set_ratio": 0.0,
+            "healthy_count": 0,
+            "healthy_ratio": 0.0,
+        }
+        try:
+            # 抓取包含 (not set) 的所有數據以計算比例
+            health_response = self._run_report(
+                dimensions=["customEvent:section_name"],
+                metrics=["eventCount"],
+                date_ranges=date_ranges,
+                limit=1000,
+                property_id=property_id,
+            )
+            
+            total_events = 0
+            not_set_count = 0
+            for row in health_response.rows:
+                count = int(row.metric_values[0].value)
+                total_events += count
+                val = row.dimension_values[0].value
+                if val == "(not set)" or val == "":
+                    not_set_count += count
+            
+            if total_events > 0:
+                tracking_health["total_events"] = total_events
+                tracking_health["not_set_count"] = not_set_count
+                tracking_health["not_set_ratio"] = round(not_set_count / total_events, 4)
+                tracking_health["healthy_count"] = total_events - not_set_count
+                tracking_health["healthy_ratio"] = round((total_events - not_set_count) / total_events, 4)
+        except Exception as e:
+            logger.warning(f"GA4 追蹤健康檢測查詢失敗: {e}")
+
+        result = {
             "events": events,
             "sections": sections,
             "weekday": weekday,
             "hourly": hourly,
             "hourlyByDate": hourly_by_date,
+            "tracking_health": tracking_health,
         }
+        self._set_to_cache(cache_key, result)
+        return result
 
     # ----- 6. Tech 技術分析報表 -----
 
@@ -708,6 +829,10 @@ class GAService:
             { browsers: BrowserData[], screens: ScreenData[] }
         """
         logger.info(f"📱 取得 Tech 技術分析報表 ({start_date} ~ {end_date})...")
+        
+        cache_key = f"tech:{start_date}:{end_date}:{property_id or 'default'}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data: return cached_data
         date_ranges = [DateRange(start_date=start_date, end_date=end_date)]
 
         try:
@@ -791,14 +916,65 @@ class GAService:
                         "reason": " + ".join(reasons)
                     })
 
-            return {
+            result = {
                 "browsers": browsers,
                 "screens": screens,
                 "bots": bots
             }
+            self._set_to_cache(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"GA4 技術分析報表查詢失敗: {e}")
             raise e
 
+
+    def get_traffic_anomaly_data(self, property_id: str | None = None) -> dict | None:
+        """
+        [偵測異常] 比較「今日至今」與「昨日」的使用者數。
+
+        如果昨日無流量（例如新站），則跳過。
+        預期回傳包含百分比與原始數據的 dict。
+        """
+        prop_id = property_id or self.property_id
+        
+        # 取得今天與昨天的 KPI
+        # 使用專有的 DateRange 確保精準
+        today_range = DateRange(start_date="today", end_date="today")
+        yesterday_range = DateRange(start_date="yesterday", end_date="yesterday")
+        
+        try:
+            # 查詢今日
+            today_res = self._run_report(
+                dimensions=[],
+                metrics=["totalUsers"],
+                date_ranges=[today_range],
+                property_id=prop_id
+            )
+            today_users = int(today_res.rows[0].metric_values[0].value) if today_res.rows else 0
+            
+            # 查詢昨日
+            yesterday_res = self._run_report(
+                dimensions=[],
+                metrics=["totalUsers"],
+                date_ranges=[yesterday_range],
+                property_id=prop_id
+            )
+            yesterday_users = int(yesterday_res.rows[0].metric_values[0].value) if yesterday_res.rows else 0
+            
+            if yesterday_users == 0:
+                return None
+                
+            drop_percent = round((yesterday_users - today_users) / yesterday_users * 100, 1)
+            
+            return {
+                "property_id": prop_id,
+                "today_users": today_users,
+                "yesterday_users": yesterday_users,
+                "drop_percent": drop_percent,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"偵測流量異常時發生錯誤: {e}")
+            return None
 
 ga_service = GAService()

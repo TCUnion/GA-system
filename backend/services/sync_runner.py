@@ -1,16 +1,78 @@
-"""
-同步執行器 — 統一管理 GA4 資料同步流程
-
-NOTE: 將同步邏輯抽離為獨立模組，讓 API 端點與排程器共用同一套流程，
-避免邏輯重複並確保一致性。
-"""
 import logging
-from datetime import datetime
+import json
+import urllib.request
+from datetime import datetime, timedelta
 
+from core.config import settings
 from services.ga_service import ga_service
 from services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
+
+# NOTE: 異常告警冷卻快取 { property_id: last_alert_time }
+_alert_cooldown = {}
+
+
+def _notify_anomaly(data: dict):
+    """
+    透過 Webhook 發送異常告警至 n8n。
+    使用 urllib 避免額外相依套件。
+    """
+    if not settings.ANOMALY_WEBHOOK_URL:
+        return
+
+    try:
+        req = urllib.request.Request(
+            settings.ANOMALY_WEBHOOK_URL,
+            data=json.dumps(data).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status == 200:
+                logger.info(f"🚀 [異常告警] Webhook 已成功送出: {data['property_id']}")
+            else:
+                logger.error(f"❌ Webhook 回傳異常狀態碼: {response.status}")
+    except Exception as e:
+        logger.error(f"❌ 發送異常告警 Webhook 失敗: {e}")
+
+
+def _check_and_notify_anomaly(project_id: str | None, property_id: str | None):
+    """
+    執行流量異常偵測，若符合條件且不在冷卻期內則報警。
+    """
+    pid = property_id or settings.GA_PROPERTY_ID
+    
+    # 1. 檢查冷卻時間 (1 小時)
+    now = datetime.now()
+    if pid in _alert_cooldown:
+        if (now - _alert_cooldown[pid]) < timedelta(hours=1):
+            return
+
+    # 2. 獲取異常數據
+    anomaly_data = ga_service.get_traffic_anomaly_data(property_id=property_id)
+    if not anomaly_data:
+        return
+
+    # 3. 判斷閾值 (跌幅 > 50%)
+    if anomaly_data["drop_percent"] >= 50:
+        logger.warning(f"⚠️ [流量異常] {pid} 跌幅達 {anomaly_data['drop_percent']}%")
+        
+        # 加上專案名稱（如有）
+        project_name = "Nanzhuang GA4 Dashboard"
+        if project_id:
+            try:
+                res = supabase_service.client.table("projects").select("name").eq("id", project_id).execute()
+                if res.data:
+                    project_name = res.data[0]["name"]
+            except:
+                pass
+        
+        anomaly_data["project_name"] = project_name
+        
+        # 4. 發送通知並更新冷卻時間
+        _notify_anomaly(anomaly_data)
+        _alert_cooldown[pid] = now
 
 
 def run_sync(project_id: str | None = None, property_id: str | None = None) -> dict:
@@ -50,6 +112,10 @@ def run_sync(project_id: str | None = None, property_id: str | None = None) -> d
     if overview_data and "kpi" in overview_data:
         supabase_service.upsert_daily_snapshot(overview_data["kpi"], project_id=project_id)
         updated_reports.append("daily_snapshot")
+
+    # --- 異常偵測與告警掛鉤 ---
+    if settings.ANOMALY_WEBHOOK_URL:
+        _check_and_notify_anomaly(project_id, property_id)
 
     duration = (datetime.now() - start_time).total_seconds()
     logger.info(f"✅ 專案 {project_id or 'default'} 同步完成，耗時 {duration:.1f} 秒")

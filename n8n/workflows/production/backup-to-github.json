@@ -1,0 +1,81 @@
+{
+  "name": "[TCU]-[n8n-自動備份]-[GitHub]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-backup",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/v1/workflows",
+        "options": {}
+      },
+      "id": "n8n-api-get",
+      "name": "n8n API (Get Workflows)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_N8N_API_CREDENTIAL_ID",
+          "name": "n8n-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "owner": "YOUR_GITHUB_OWNER",
+        "repository": "tcu-n8n-workflows",
+        "branch": "main",
+        "filePath": "=workflows/production/{{ $json.name }}.json",
+        "fileContent": "={{ JSON.stringify($json) }}",
+        "commitMessage": "=自動備份: {{ new Date().toISOString() }} n8n 工作流"
+      },
+      "id": "github-push",
+      "name": "GitHub (Push Backup)",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "githubApi": {
+          "id": "YOUR_GITHUB_CREDENTIAL_ID",
+          "name": "GitHub-PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## [TCU]-[n8n-自動備份]-[GitHub]\n此工作流會定時呼叫 n8n API 取得所有工作流 JSON，並將其備份到 GitHub 專用庫中。\n\n**設定需求**:\n- n8n API Key: 在 n8n 設定中生成。\n- GitHub PAT: 具備 repo 寫入權限。\n- 專用 Repository: `tcu-n8n-workflows`。",
+        "height": 220,
+        "width": 320
+      },
+      "id": "sticky-note-backup",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, 150]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "n8n API (Get Workflows)", "type": "main", "index": 0 }]]
+    },
+    "n8n API (Get Workflows)": {
+      "main": [[{ "node": "GitHub (Push Backup)", "type": "main", "index": 0 }]]
+    }
+  }
+}

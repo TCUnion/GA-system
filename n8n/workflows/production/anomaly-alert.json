@@ -1,0 +1,64 @@
+{
+  "name": "[TCU]-[GA4-異常告警]-[Webhook]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ga4-anomaly",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = items[0].json.body;\nconst dropPercent = body.drop_percent || 0;\n\nreturn [{\n  json: {\n    message: `⚠️ GA4 流量異常告警！\\n` +\n             `━━━━━━━━━━━━━━\\n` +\n             `🚩 狀態: 流量大幅衰退\\n` +\n             `📉 跌幅: ${dropPercent}%\\n` +\n             `⏰ 偵測時間: ${new Date().toLocaleString()}\\n` +\n             `📋 建議動作: 檢查網站連線或 Google Ads 投放狀態。\\n` +\n             `━━━━━━━━━━━━━━`\n  }\n}];"
+      },
+      "id": "code-alert",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "GROUP_OR_USER_ID",
+        "message": "={{ $json.message }}"
+      },
+      "id": "line-alert",
+      "name": "LINE",
+      "type": "n8n-nodes-base.line",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "lineApi": {
+          "id": "YOUR_LINE_CREDENTIAL_ID",
+          "name": "LINE-Production-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## [TCU]-[GA4-異常告警]-[Webhook]\n當後端偵測到流量異常時，會主動發送 Webhook 到此端點，並由 n8n 即時通知 LINE。\n\n**觸發方式**:\n- POST 到 `https://your-n8n.app/webhook/ga4-anomaly`",
+        "height": 200,
+        "width": 300
+      },
+      "id": "sticky-note-alert",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, 150]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Code", "type": "main", "index": 0 }]]
+    },
+    "Code": {
+      "main": [[{ "node": "LINE", "type": "main", "index": 0 }]]
+    }
+  }
+}

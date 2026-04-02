@@ -1,0 +1,98 @@
+{
+  "name": "[TCU]-[GA4-每日報表]-[定時任務]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-cron",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableName": "ga4_cache",
+        "filters": {
+          "conditions": [
+            {
+              "column": "report_type",
+              "value": "overview"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "supabase-read",
+      "name": "Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase-Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nconst data = item.data;\nconst date = new Date(item.updated_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });\n\nreturn [{\n  json: {\n    message: `📊 南庄山水 GA4 每日戰報\\n` +\n             `━━━━━━━━━━━━━━\\n` +\n             `👤 活躍使用者: ${data.activeUsers}\\n` +\n             `📄 頁面瀏覽量: ${data.screenPageViews}\\n` +\n             `⏱️ 平均參與時間: ${data.averageSessionDuration}\\n` +\n             `📅 資料更新時間: ${date}\\n` +\n             `━━━━━━━━━━━━━━\\n` +\n             `🔗 查看完整儀表板: https://tcu-ga4.zeabur.app`\n  }\n}];"
+      },
+      "id": "code-format",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "GROUP_OR_USER_ID",
+        "message": "={{ $json.message }}"
+      },
+      "id": "line-send",
+      "name": "LINE",
+      "type": "n8n-nodes-base.line",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "credentials": {
+        "lineApi": {
+          "id": "YOUR_LINE_CREDENTIAL_ID",
+          "name": "LINE-Production-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## [TCU]-[GA4-每日報表]-[定時任務]\n此工作流每天早上 9:00 從 Supabase 抓取最新的 GA4 概覽資料，格式化後發送到 LINE。\n\n**設定細節**:\n- 憑證: 需手動在 n8n 建立 Supabase 與 LINE Bot 憑證。\n- 目標: `sendTo` 請填入特定的 User ID 或 Group ID。",
+        "height": 220,
+        "width": 320
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, 150]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Supabase", "type": "main", "index": 0 }]]
+    },
+    "Supabase": {
+      "main": [[{ "node": "Format Message", "type": "main", "index": 0 }]]
+    },
+    "Format Message": {
+      "main": [[{ "node": "LINE", "type": "main", "index": 0 }]]
+    }
+  }
+}

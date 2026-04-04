@@ -162,6 +162,10 @@ export interface DateRangeParams {
 const cache: Record<string, { data: any; timestamp: number }> = {};
 const CACHE_TTL = 5 * 60 * 1000; // 前端快取 5 分鐘
 
+// NOTE: in-flight Promise 去重 — 防止同一 cacheKey 同時發出多個重複 API 請求（race condition）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightPromises: Record<string, Promise<any | null>> = {};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 /**
@@ -175,33 +179,42 @@ async function fetchReportData(reportType: string, startDate: string, endDate: s
     return cached.data;
   }
 
-  // 如果沒有設定 API URL，預設可以做一個簡單防呆，但這裡假設有
+  // NOTE: 若已有相同 cacheKey 的請求 in-flight，直接共用同一個 Promise，避免重複打 API
+  if (cacheKey in inFlightPromises) {
+    return inFlightPromises[cacheKey];
+  }
+
   if (!API_BASE_URL) {
     console.warn('VITE_API_URL 未設定');
-    // 如果沒有後端 API，可以考慮這裡 fallback 到 Supabase (選填)
     return null;
   }
 
-  try {
-    const url = new URL(`${API_BASE_URL}/api/reports/${reportType}`);
-    url.searchParams.append('start_date', startDate);
-    url.searchParams.append('end_date', endDate);
-    if (project_id) {
-      url.searchParams.append('project_id', project_id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const promise: Promise<any | null> = (async () => {
+    try {
+      const url = new URL(`${API_BASE_URL}/api/reports/${reportType}`);
+      url.searchParams.append('start_date', startDate);
+      url.searchParams.append('end_date', endDate);
+      if (project_id) {
+        url.searchParams.append('project_id', project_id);
+      }
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`API 回傳錯誤: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      cache[cacheKey] = { data, timestamp: Date.now() };
+      return data;
+    } catch (err) {
+      console.warn(`後端 API 連線失敗 (${reportType}):`, err);
+      return null;
+    } finally {
+      delete inFlightPromises[cacheKey];
     }
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`API 回傳錯誤: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
+  })();
 
-    // 更新前端快取
-    cache[cacheKey] = { data, timestamp: Date.now() };
-    return data;
-  } catch (err) {
-    console.warn(`後端 API 連線失敗 (${reportType}):`, err);
-    return null;
-  }
+  inFlightPromises[cacheKey] = promise;
+  return promise;
 }
 
 // (移除 fetchDailySnapshots，統一使用 fetchReportData)

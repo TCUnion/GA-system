@@ -1,4 +1,6 @@
 import logging
+import threading
+import time
 from datetime import date, datetime, timezone
 from typing import Any
 from supabase import create_client, Client
@@ -15,6 +17,9 @@ class SupabaseService:
             settings.SUPABASE_URL,
             settings.SUPABASE_SERVICE_ROLE_KEY
         )
+        # NOTE: property_id TTL 記憶體快取，格式 { project_id: (expire_at, value) }
+        self._property_id_cache: dict[str, tuple[float, str | None]] = {}
+        self._property_id_lock = threading.Lock()
 
     def upsert_cache(self, report_type: str, data: Any, project_id: str | None = None):
         """
@@ -72,39 +77,82 @@ class SupabaseService:
             logger.error(f"Supabase 每日快照寫入失敗: {e}")
             raise e
 
-    def get_cache(self, report_type: str, project_id: str | None = None) -> dict | None:
+    def get_cache(self, report_type: str, project_id: str | None = None, max_age_seconds: int | None = None) -> dict | None:
         """
         從 ga4_cache 表讀取指定報表的快取資料。
+
+        Args:
+            max_age_seconds: 若指定，則超過此秒數的快取視為過期並返回 None。
+                             None 表示不做 TTL 檢查（相容舊行為）。
         """
         try:
-            query = self.client.table("ga4_cache").select("data").eq("report_type", report_type)
-            
+            query = (
+                self.client.table("ga4_cache")
+                .select("data, fetched_at")
+                .eq("report_type", report_type)
+            )
+
             if project_id:
                 query = query.eq("project_id", project_id)
             else:
                 query = query.is_("project_id", "null")
 
-            response = query.execute()
-            if response.data:
-                return response.data[0]["data"]
-            return None
+            response = query.order("fetched_at", desc=True).limit(1).execute()
+            if not response.data:
+                return None
+
+            row = response.data[0]
+
+            if max_age_seconds is not None:
+                fetched_at_str = row.get("fetched_at")
+                if fetched_at_str:
+                    fetched_at = datetime.fromisoformat(fetched_at_str.replace("Z", "+00:00"))
+                    age = (datetime.now(timezone.utc) - fetched_at).total_seconds()
+                    if age > max_age_seconds:
+                        logger.debug(f"快取過期 ({report_type}): {age:.0f}s > {max_age_seconds}s")
+                        return None
+
+            return row["data"]
         except Exception as e:
             logger.error(f"Supabase 讀取快取失敗 ({report_type}): {e}")
             return None
 
+    def get_stale_cache(self, report_type: str, project_id: str | None = None) -> dict | None:
+        """
+        讀取快取，不做 TTL 限制（作為降級 fallback 使用）。
+        """
+        return self.get_cache(report_type, project_id, max_age_seconds=None)
+
     def get_ga_property_id(self, project_id: str) -> str | None:
         """
-        透過 project_id 查詢 projects 表，取得對應的 ga_property_id
+        透過 project_id 查詢 projects 表，取得對應的 ga_property_id。
+        結果以 TTL=PROPERTY_ID_CACHE_TTL_SECONDS 記憶體快取，避免重複查 DB。
         """
         if not project_id:
             return None
+
+        now = time.monotonic()
+        with self._property_id_lock:
+            entry = self._property_id_cache.get(project_id)
+            if entry and now < entry[0]:
+                return entry[1]
+
         try:
             res = self.client.table("projects").select("ga_property_id").eq("id", project_id).execute()
-            if res.data and len(res.data) > 0:
-                return res.data[0].get("ga_property_id")
-            return None
+            value = res.data[0].get("ga_property_id") if res.data else None
         except Exception as e:
             logger.error(f"查詢專案 {project_id} 失敗: {e}")
             return None
+
+        expire_at = now + settings.PROPERTY_ID_CACHE_TTL_SECONDS
+        with self._property_id_lock:
+            self._property_id_cache[project_id] = (expire_at, value)
+
+        return value
+
+    def invalidate_ga_property_id_cache(self, project_id: str) -> None:
+        """強制清除指定 project_id 的 property_id 記憶體快取。"""
+        with self._property_id_lock:
+            self._property_id_cache.pop(project_id, None)
 
 supabase_service = SupabaseService()

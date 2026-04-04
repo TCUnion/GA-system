@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.sync import router as sync_router
 from api.reports import router as reports_router
 from api.admin import router as admin_router
+from core.config import settings
 from core.scheduler import start_scheduler, stop_scheduler
 
 
@@ -32,12 +33,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# NOTE: CORS 設定 — 部署後前後端域名不同，需允許跨域請求
-# 生產環境建議限縮 allow_origins 為前端實際網域
+# NOTE: CORS 設定 — 解析 CORS_ALLOW_ORIGINS 白名單
+# 若留空則退回 wildcard，但同時強制關閉 allow_credentials（瀏覽器規範不允許兩者並存）
+_cors_origins_raw = settings.CORS_ALLOW_ORIGINS.strip()
+if _cors_origins_raw:
+    _cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+    _cors_credentials = settings.CORS_ALLOW_CREDENTIALS
+else:
+    _cors_origins = ["*"]
+    _cors_credentials = False  # wildcard + credentials 瀏覽器會拒絕
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: 部署後改為前端網域白名單
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

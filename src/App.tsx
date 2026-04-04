@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
@@ -5,14 +6,23 @@ import { ProjectProvider } from './contexts/ProjectContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
-import OverviewPage from './pages/OverviewPage';
-import AudiencePage from './pages/AudiencePage';
-import AcquisitionPage from './pages/AcquisitionPage';
-import ContentPage from './pages/ContentPage';
-import EngagementPage from './pages/EngagementPage';
-import TechPage from './pages/TechPage';
-import AdminPage from './pages/AdminPage';
-import HeatmapPage from './pages/HeatmapPage';
+
+const OverviewPage = lazy(() => import('./pages/OverviewPage'));
+const AudiencePage = lazy(() => import('./pages/AudiencePage'));
+const AcquisitionPage = lazy(() => import('./pages/AcquisitionPage'));
+const ContentPage = lazy(() => import('./pages/ContentPage'));
+const EngagementPage = lazy(() => import('./pages/EngagementPage'));
+const TechPage = lazy(() => import('./pages/TechPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const HeatmapPage = lazy(() => import('./pages/HeatmapPage'));
+
+function PageLoader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>
+      <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: 'rgba(255,255,255,0.8)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+    </div>
+  );
+}
 
 /**
  * App 元件
@@ -43,14 +53,14 @@ function App() {
                 <ConnectionProvider><Layout /></ConnectionProvider>
               </ProjectProvider>
             }>
-              <Route path="/" element={<OverviewPage />} />
-              <Route path="/audience" element={<AudiencePage />} />
-              <Route path="/acquisition" element={<AcquisitionPage />} />
-              <Route path="/content" element={<ContentPage />} />
-              <Route path="/engagement" element={<EngagementPage />} />
-              <Route path="/heatmap" element={<HeatmapPage />} />
-              <Route path="/tech" element={<TechPage />} />
-              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/" element={<Suspense fallback={<PageLoader />}><OverviewPage /></Suspense>} />
+              <Route path="/audience" element={<Suspense fallback={<PageLoader />}><AudiencePage /></Suspense>} />
+              <Route path="/acquisition" element={<Suspense fallback={<PageLoader />}><AcquisitionPage /></Suspense>} />
+              <Route path="/content" element={<Suspense fallback={<PageLoader />}><ContentPage /></Suspense>} />
+              <Route path="/engagement" element={<Suspense fallback={<PageLoader />}><EngagementPage /></Suspense>} />
+              <Route path="/heatmap" element={<Suspense fallback={<PageLoader />}><HeatmapPage /></Suspense>} />
+              <Route path="/tech" element={<Suspense fallback={<PageLoader />}><TechPage /></Suspense>} />
+              <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
             </Route>
           </Route>
         </Routes>

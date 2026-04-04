@@ -4,6 +4,8 @@ import json
 import logging
 import tempfile
 import re
+import threading
+import time
 from datetime import datetime, timedelta
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
@@ -16,8 +18,18 @@ from google.analytics.data_v1beta.types import (
     FilterExpressionList,
     Filter,
 )
+from google.api_core import exceptions as google_exceptions
 from google.oauth2 import service_account
 from core.config import settings
+
+# NOTE: GA4 API 暫時性錯誤，值得重試
+_RETRYABLE_EXCEPTIONS = (
+    google_exceptions.DeadlineExceeded,
+    google_exceptions.InternalServerError,
+    google_exceptions.ResourceExhausted,
+    google_exceptions.ServiceUnavailable,
+    google_exceptions.TooManyRequests,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +94,9 @@ class GAService:
 
         # --- 前端請求快取 ---
         # 存儲格式: { cache_key: (timestamp, data) }
-        self._api_cache = {}
+        self._api_cache: dict[str, tuple[float, any]] = {}
         self._api_cache_ttl = 300  # 預設緩存 5 分鐘
+        self._api_cache_lock = threading.Lock()
 
     # ----- 共用內部方法 -----
 
@@ -121,19 +134,21 @@ class GAService:
         )
 
     def _get_from_cache(self, key: str):
-        """從記憶體快取中取得資料，若過期則返回 None"""
-        if key in self._api_cache:
-            ts, data = self._api_cache[key]
-            if (datetime.now().timestamp() - ts) < self._api_cache_ttl:
-                logger.info(f"⚡ 從快取讀取: {key}")
-                return data
-            else:
+        """從記憶體快取中取得資料，若過期則返回 None（thread-safe）"""
+        with self._api_cache_lock:
+            entry = self._api_cache.get(key)
+            if entry:
+                ts, data = entry
+                if (datetime.now().timestamp() - ts) < self._api_cache_ttl:
+                    logger.info(f"⚡ 從快取讀取: {key}")
+                    return data
                 del self._api_cache[key]
         return None
 
     def _set_to_cache(self, key: str, data: any):
-        """將資料存入記憶體快取"""
-        self._api_cache[key] = (datetime.now().timestamp(), data)
+        """將資料存入記憶體快取（thread-safe）"""
+        with self._api_cache_lock:
+            self._api_cache[key] = (datetime.now().timestamp(), data)
 
 
     def _run_report(self, dimensions: list[str], metrics: list[str],
@@ -144,6 +159,7 @@ class GAService:
                     property_id: str | None = None):
         """
         共用的 GA4 報表查詢方法，簡化各報表的重複程式碼。
+        內建 exponential backoff 重試（針對暫時性 GA4 API 錯誤）。
 
         Args:
             dimensions: 維度名稱列表
@@ -157,7 +173,7 @@ class GAService:
         actual_property_id = property_id if property_id else self.property_id
         if not actual_property_id:
             raise ValueError("未指定 GA_PROPERTY_ID")
-            
+
         request = RunReportRequest(
             property=f"properties/{actual_property_id}",
             dimensions=[Dimension(name=d) for d in dimensions],
@@ -167,7 +183,19 @@ class GAService:
             dimension_filter=dimension_filter,
             limit=limit,
         )
-        return self.client.run_report(request)
+
+        max_retries = settings.GA_API_MAX_RETRIES
+        timeout = settings.GA_API_TIMEOUT_SECONDS
+        for attempt in range(max_retries + 1):
+            try:
+                return self.client.run_report(request, timeout=timeout)
+            except _RETRYABLE_EXCEPTIONS as e:
+                if attempt >= max_retries:
+                    logger.error(f"GA4 API 重試 {max_retries} 次後仍失敗: {e}")
+                    raise
+                wait = 2 ** attempt  # 1s, 2s, 4s …
+                logger.warning(f"GA4 API 暫時錯誤 (嘗試 {attempt + 1}/{max_retries + 1})，{wait}s 後重試: {e}")
+                time.sleep(wait)
 
     # ----- 1. Overview 總覽報表 -----
 
@@ -188,25 +216,14 @@ class GAService:
         current_range = DateRange(start_date=start_date, end_date=end_date)
         compare_range = self._get_compare_date_range(start_date, end_date)
 
-        actual_property_id = property_id if property_id else self.property_id
-        if not actual_property_id:
-            raise ValueError("未指定 GA_PROPERTY_ID")
-
-        request = RunReportRequest(
-            property=f"properties/{actual_property_id}",
-            metrics=[
-                Metric(name="totalUsers"),
-                Metric(name="newUsers"),
-                Metric(name="sessions"),
-                Metric(name="screenPageViews"),
-                Metric(name="averageSessionDuration"),
-                Metric(name="bounceRate"),
-            ],
-            date_ranges=[current_range, compare_range],
-        )
-
         try:
-            response = self.client.run_report(request)
+            response = self._run_report(
+                dimensions=[],
+                metrics=["totalUsers", "newUsers", "sessions", "screenPageViews",
+                         "averageSessionDuration", "bounceRate"],
+                date_ranges=[current_range, compare_range],
+                property_id=property_id,
+            )
 
             kpi = {
                 "totalUsers": 0, "newUsers": 0, "sessions": 0,

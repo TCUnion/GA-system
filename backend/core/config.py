@@ -33,6 +33,27 @@ class Settings(BaseSettings):
     # NOTE: 排程同步間隔（分鐘），可透過環境變數覆寫，預設每 30 分鐘
     SYNC_INTERVAL_MINUTES: int = 30
 
+    # NOTE: Supabase 快取最大有效期（秒），超過則視為過期，預設 30 分鐘
+    REPORTS_CACHE_MAX_AGE_SECONDS: int = 1800
+
+    # NOTE: property_id 記憶體快取 TTL（秒），預設 1 小時
+    PROPERTY_ID_CACHE_TTL_SECONDS: int = 3600
+
+    # NOTE: 同步時 GA4 並行取回的最大執行緒數
+    SYNC_MAX_WORKERS: int = 4
+
+    # NOTE: GA4 API 單次請求超時（秒）
+    GA_API_TIMEOUT_SECONDS: float = 15.0
+
+    # NOTE: GA4 API 暫時性錯誤最大重試次數
+    GA_API_MAX_RETRIES: int = 2
+
+    # NOTE: CORS 允許來源白名單，逗號分隔，留空則退回 wildcard（無憑證）
+    CORS_ALLOW_ORIGINS: str = ""
+
+    # NOTE: CORS 是否允許攜帶憑證（Cookie/Authorization），wildcard 時強制 False
+    CORS_ALLOW_CREDENTIALS: bool = True
+
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
         env_file_encoding="utf-8"

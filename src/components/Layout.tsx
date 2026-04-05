@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useConnection } from '../contexts/ConnectionContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProject } from '../contexts/ProjectContext';
 import DateRangePicker from './DateRangePicker';
+import { ToastContainer, showToast } from './Toast';
 import './Layout.css';
 import { generateAIPrompt } from '../utils/exportForAI';
 
@@ -56,10 +57,17 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
     </svg>
   ),
   heatmap: (
+    // NOTE: 使用網格熱點圖示，比同心圓更能直覺傳達「熱區」概念
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12A10 10 0 1 0 12 22a10 10 0 0 0 10-10z" />
-      <circle cx="12" cy="12" r="3" fill="currentColor" />
-      <circle cx="12" cy="12" r="6" strokeDasharray="2 2" />
+      <rect x="3" y="3" width="4" height="4" rx="1" fill="currentColor" opacity="0.9" />
+      <rect x="10" y="3" width="4" height="4" rx="1" fill="currentColor" opacity="0.5" />
+      <rect x="17" y="3" width="4" height="4" rx="1" fill="currentColor" opacity="0.2" />
+      <rect x="3" y="10" width="4" height="4" rx="1" fill="currentColor" opacity="0.6" />
+      <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" opacity="1" />
+      <rect x="17" y="10" width="4" height="4" rx="1" fill="currentColor" opacity="0.4" />
+      <rect x="3" y="17" width="4" height="4" rx="1" fill="currentColor" opacity="0.3" />
+      <rect x="10" y="17" width="4" height="4" rx="1" fill="currentColor" opacity="0.7" />
+      <rect x="17" y="17" width="4" height="4" rx="1" fill="currentColor" opacity="0.2" />
     </svg>
   ),
 };
@@ -103,11 +111,25 @@ function formatLastUpdated(isoString: string | null): string {
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
+  const projectSelectorRef = useRef<HTMLDivElement>(null);
   const { status, lastUpdatedAt, dateRange, setDateRange } = useConnection();
   const { user, signOut } = useAuth();
   const { projects, currentProject, role, switchProject } = useProject();
   const [isExporting, setIsExporting] = useState(false);
   const navigate = useNavigate();
+
+  // 點擊專案選擇器外部時關閉下拉選單
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (projectSelectorRef.current && !projectSelectorRef.current.contains(e.target as Node)) {
+        setProjectDropdownOpen(false);
+      }
+    }
+    if (projectDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [projectDropdownOpen]);
 
   // 連線狀態文字與樣式映射
   const statusConfig = {
@@ -128,10 +150,10 @@ function Layout() {
         project_id: currentProject?.id
       });
       await navigator.clipboard.writeText(markdown);
-      alert('已成功將 GA4 數據報告複製到剪貼簿！可直接貼給 AI 進行分析。');
+      showToast('已成功將 GA4 數據報告複製到剪貼簿！可直接貼給 AI 進行分析。', 'success');
     } catch (error) {
       console.error('匯出失敗:', error);
-      alert('匯出資料失敗。');
+      showToast('匯出資料失敗，請稍後再試。', 'error');
     } finally {
       setIsExporting(false);
     }
@@ -139,6 +161,12 @@ function Layout() {
 
   return (
     <div className="layout">
+      {/* 跳過導覽連結 — WCAG 2.4.1 鍵盤使用者快速跳至主內容 */}
+      <a href="#main-content" className="skip-link">跳至主要內容</a>
+
+      {/* Toast 通知容器 */}
+      <ToastContainer />
+
       {/* 側邊欄 */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         {/* 品牌標題列 */}
@@ -159,7 +187,7 @@ function Layout() {
         </div>
 
         {/* 專案選擇器（多專案切換） */}
-        <div className="project-selector">
+        <div className="project-selector" ref={projectSelectorRef}>
           <button
             id="project-selector-btn"
             className="project-selector-btn"
@@ -286,6 +314,7 @@ function Layout() {
                 id="admin-shortcut-btn"
                 className="btn-admin-shortcut"
                 onClick={() => { navigate('/admin'); setSidebarOpen(false); }}
+                aria-label="管理後台"
                 title="管理後台"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -312,7 +341,7 @@ function Layout() {
       </aside>
 
       {/* 主內容區 */}
-      <main className="main-content">
+      <main id="main-content" className="main-content">
         <div className="top-bar">
           <div className="top-bar-left">
             <button

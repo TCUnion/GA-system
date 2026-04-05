@@ -14,7 +14,7 @@ import './ScoreCard.css';
 interface ScoreCardProps {
   label: string;
   value: number;
-  previousValue: number;
+  previousValue: number | null;
   format: 'number' | 'percent' | 'duration' | 'decimal';
   icon: React.ReactNode;
 }
@@ -35,8 +35,11 @@ const ArrowDown = () => (
 
 function ScoreCard({ label, value, previousValue, format, icon }: ScoreCardProps) {
   // NOTE: 計算與前期的變化百分比
-  const hasPreviousData = previousValue > 0;
-  const changePercent = hasPreviousData ? ((value - previousValue) / previousValue) * 100 : 0;
+  // 使用 null 判斷是否有前期資料，避免前期值為 0 時被誤判為「無資料」
+  const hasPreviousData = previousValue !== null && previousValue !== undefined;
+  const changePercent = hasPreviousData && previousValue !== 0
+    ? ((value - previousValue) / previousValue) * 100
+    : 0;
   const isPositive = hasPreviousData ? changePercent >= 0 : true;
 
   /**

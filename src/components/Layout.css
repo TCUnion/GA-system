@@ -2,6 +2,28 @@
  * Layout — 側邊欄 + 主內容區
  * ======================================== */
 
+/* --- 跳至主要內容連結（WCAG 2.4.1） --- */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-md);
+  z-index: 200;
+  padding: 8px 16px;
+  background: var(--color-accent);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: var(--space-md);
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
 .layout {
   display: flex;
   /* NOTE: 使用 dvh 修復 iOS Safari 100vh 不計入位址列的問題 */
@@ -66,7 +88,8 @@
 }
 
 .sidebar-brand-text span {
-  font-size: 0.7rem;
+  /* NOTE: 從 0.7rem(11.2px) 調整至 0.75rem(12px)，改善小字可讀性 */
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -194,7 +217,8 @@
 }
 
 .project-dropdown-id {
-  font-size: 0.6rem;
+  /* NOTE: 最小 11px (0.7rem @ 16px base)，確保可讀性 */
+  font-size: 0.7rem;
   color: var(--text-tertiary);
 }
 

@@ -9,9 +9,9 @@ import { useGA4Data } from '../hooks/useGA4Data';
 import { getPageData, getLandingPageData, getDailyTraffic } from '../services/ga4Service';
 import PageLoader from '../components/PageLoader';
 import type { PageData } from '../services/ga4Service';
+import { tooltipStyle as ts } from '../utils/chartStyles';
 
 const CHART_COLORS = ['#3b82f6', '#22c997'];
-const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function ContentPage() {
   const { data: pages, loading: L1 } = useGA4Data(getPageData, []);

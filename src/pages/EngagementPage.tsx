@@ -13,11 +13,11 @@ import {
 } from '../services/ga4Service';
 import PageLoader from '../components/PageLoader';
 import type { EventData } from '../services/ga4Service';
+import { tooltipStyle as ts } from '../utils/chartStyles';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh-TW') : String(value);
-const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 function EngagementPage() {
   const { data: events, loading: L1, error: eventsError } = useGA4Data(getEventData, []);

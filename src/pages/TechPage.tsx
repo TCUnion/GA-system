@@ -9,11 +9,11 @@ import type { Column } from '../components/DataTable';
 import { useGA4Data } from '../hooks/useGA4Data';
 import { getDeviceData, getBrowserData, getScreenData, getBotData } from '../services/ga4Service';
 import type { BrowserData, ScreenData, BotData } from '../services/ga4Service';
+import { tooltipStyle as ts } from '../utils/chartStyles';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh-TW') : String(value);
-const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 const browserColumns: Column<BrowserData>[] = [
   { key: 'name', label: '瀏覽器', render: (v, _r, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{v as string}</div></div>) },

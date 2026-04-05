@@ -81,9 +81,3 @@
   font-weight: 400;
 }
 
-/* --- 迷你趨勢線 --- */
-.scorecard-sparkline {
-  margin-top: var(--space-md);
-  height: 32px;
-  opacity: 0.5;
-}

@@ -11,11 +11,11 @@ import { getDeviceData, getOsData, getCityData, getLanguageData, aggregateToCoun
 import PageLoader from '../components/PageLoader';
 import type { CityData, CountyData, CountryData } from '../services/ga4Service';
 import { useMemo } from 'react';
+import { tooltipStyle as ts } from '../utils/chartStyles';
 
 const CHART_COLORS = ['#3b82f6', '#22c997', '#a855f7', '#f5a623', '#ec4899', '#22d3ee'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fmt = (value: any) => typeof value === 'number' ? value.toLocaleString('zh-TW') : String(value);
-const ts = { background: 'hsl(222, 44%, 12%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 12 };
 
 const countyColumns: Column<CountyData>[] = [
   { key: 'name', label: '縣市', render: (_v, row, i) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}><span className={`rank-cell ${i < 3 ? 'top-3' : ''} flex-shrink-0`}>{i + 1}</span><div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, color: 'var(--text-primary)' }}>{row.name}</div></div>) },

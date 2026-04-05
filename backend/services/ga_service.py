@@ -442,12 +442,13 @@ class GAService:
             ]
 
             # 來源 / 媒介明細 (含所屬管道群組以支援前端下鑽篩選)
+            # NOTE: limit=200 確保低流量的 AI 來源不會被 top-50 截斷
             source_response = self._run_report(
                 dimensions=["sessionDefaultChannelGrouping", "sessionSource", "sessionMedium"],
                 metrics=["sessions", "totalUsers", "newUsers", "engagementRate", "averageSessionDuration"],
                 date_ranges=date_ranges,
                 order_bys=[OrderBy(metric=OrderBy.MetricOrderBy(metric_name="sessions"), desc=True)],
-                limit=50,
+                limit=200,
                 property_id=property_id,
             )
             source_medium = []
@@ -474,10 +475,15 @@ class GAService:
                 "linkedin.com": "LinkedIn", "threads.net": "Threads",
             }
             ai_platforms = {
-                "chatgpt.com": "ChatGPT", "openai.com": "ChatGPT",
-                "perplexity.ai": "Perplexity", "anthropic.com": "Claude",
-                "claude.ai": "Claude", "gemini.google.com": "Gemini",
+                "chatgpt.com": "ChatGPT", "chat.openai.com": "ChatGPT", "openai.com": "ChatGPT",
+                "perplexity.ai": "Perplexity",
+                "anthropic.com": "Claude", "claude.ai": "Claude",
+                "gemini.google.com": "Gemini", "bard.google.com": "Gemini",
+                "copilot.microsoft.com": "Copilot", "bing.com/chat": "Copilot",
+                "you.com": "You.com", "phind.com": "Phind",
             }
+            # NOTE: GA4 2024 起新增 "Organic AI" channel group，涵蓋無法從 source 辨識的 AI 流量
+            ai_channel_keywords = {"organic ai", "ai", "llm"}
             
             social_agg: dict[str, int] = {}
             ai_agg = {}
@@ -504,7 +510,10 @@ class GAService:
                     if key in source_raw:
                         matched_ai = name
                         break
-                
+                # NOTE: GA4 2024 新增 "Organic AI" channel group，涵蓋無法從 source 辨識的 AI 流量
+                if not matched_ai and any(kw in channel_raw for kw in ai_channel_keywords):
+                    matched_ai = source_raw.split("/")[0] or "AI"
+
                 if matched_ai:
                     if matched_ai not in ai_agg:
                         ai_agg[matched_ai] = {"sessions": 0, "users": 0, "engagementRate": 0, "count": 0}
